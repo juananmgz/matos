@@ -240,12 +240,14 @@ Al terminar cualquier fase (o cambio significativo):
 1. **Tests verdes**: `make test` pasa sin errores.
 2. **Commit en la rama de trabajo** con mensaje `feat: phase N — <título>`.
 3. **Actualizar `README.md`**: estado de fases, comandos nuevos, estructura si cambia.
-4. **Merge a `main`** desde el worktree principal:
+4. **Si cambia el esquema SQLite** (`index/schema.sql`): actualizar `documentation/db-schema.dot`
+   y regenerar el PNG con `make db-diagram`. Commitear ambos ficheros.
+5. **Merge a `main`** desde el worktree principal:
    ```bash
    git -C /Users/juananmgz/Desktop/MNEMOSINE/MATOS merge --no-ff <rama> -m "Merge branch '<rama>'"
    git -C /Users/juananmgz/Desktop/MNEMOSINE/MATOS push origin main
    ```
-5. **Actualizar estado** en la tabla de fases de este `CLAUDE.md` y en `ROADMAP.md`.
+6. **Actualizar estado** en la tabla de fases de este `CLAUDE.md` y en `ROADMAP.md`.
 
 No dejar commits sin mergear a `main` al final de una sesión.
 
