@@ -233,6 +233,22 @@ YOUTUBE_API_KEY=…                       # opcional
 
 URL resolver: pegar URL → metadata pre-rellenada → guardar.
 
+## Flujo de trabajo obligatorio al completar una fase
+
+Al terminar cualquier fase (o cambio significativo):
+
+1. **Tests verdes**: `make test` pasa sin errores.
+2. **Commit en la rama de trabajo** con mensaje `feat: phase N — <título>`.
+3. **Actualizar `README.md`**: estado de fases, comandos nuevos, estructura si cambia.
+4. **Merge a `main`** desde el worktree principal:
+   ```bash
+   git -C /Users/juananmgz/Desktop/MNEMOSINE/MATOS merge --no-ff <rama> -m "Merge branch '<rama>'"
+   git -C /Users/juananmgz/Desktop/MNEMOSINE/MATOS push origin main
+   ```
+5. **Actualizar estado** en la tabla de fases de este `CLAUDE.md` y en `ROADMAP.md`.
+
+No dejar commits sin mergear a `main` al final de una sesión.
+
 ## Convenciones
 
 - Pydantic v2 es la fuente de verdad de schemas; nunca editar `schemas/*.json`
