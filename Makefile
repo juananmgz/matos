@@ -98,6 +98,10 @@ format:              ## auto-format backend + frontend
 cli:                 ## ejecuta CLI matos (args="<subcomando>")
 	$(COMPOSE) exec backend uv run matos $(args)
 
+.PHONY: init
+init:                ## inicializa archivo/ con _index.json + CCAA ejemplo
+	$(COMPOSE) exec backend uv run matos init /data/archivo $(args)
+
 .PHONY: reindex
 reindex:             ## reconstruye índice SQLite (≥ fase 2)
 	$(COMPOSE) exec backend uv run matos reindex

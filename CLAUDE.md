@@ -278,8 +278,8 @@ Cuando se incorporen Postgres+PostGIS y S3:
 | Fase | Estado |
 |---|---|
 | 0  Scaffold + docker | ✅ completada |
-| 1  Schemas Pydantic | ⏳ pendiente |
-| 2  Storage + índice SQLite | ⏳ |
+| 1  Schemas Pydantic | ✅ completada |
+| 2  Storage + índice SQLite | ✅ completada |
 | 3  API lectura | ⏳ |
 | 4  API streaming | ⏳ |
 | 5  Frontend navegación | ⏳ |

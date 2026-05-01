@@ -83,7 +83,7 @@ make logs s=backend
 - `models/index.py`: `ArchiveIndex` (raíz `archivo/_index.json`).
 - `models/common.py`: `MatosModel` base + `SCHEMA_VERSION = "1.0.0"`.
 - 28 tests pytest verdes incluyendo:
-  - Caso "Ringorrando — J#4" (verdad externa preservada en `external_metadata.raw` + `track_title_external`; verdad del archivo en `title`/`geo_id`/`context`).
+  - Caso "Ringorrango — J#4" (verdad externa preservada en `external_metadata.raw` + `track_title_external`; verdad del archivo en `title`/`geo_id`/`context`).
   - Invariantes `kind ↔ file/url`, `source.type ↔ release/broadcast`.
   - Validación de rangos: lat/lon, INE 5/2 dígitos, year, segments.
   - Self-loops en relaciones rechazados.
@@ -95,12 +95,12 @@ make logs s=backend
 **Decisiones de diseño**:
 - **Dos capas de metadatos por item**: `external_metadata` (cache crudo, inmutable a mano, solo via refetch) vs. campos top-level (verdad del archivo, editada por superusuario). `external_metadata.raw_hash` permite detectar `needs_review` en fase 11.
 - **`Segment` permite multi-canción en un mismo media**: ítems hermanos con la misma URL y distinto `offset_s`/`duration_s` para medleys o álbum-tracks.
-- **`geo_id` del item = origen de la canción**, no ubicación del artista (clave para el caso Ringorrando).
+- **`geo_id` del item = origen de la canción**, no ubicación del artista (clave para el caso Ringorrango).
 - **Identidad por UUID v4 estable**: renombrar ficheros no rompe relaciones.
 
 ---
 
-## Fase 2 ⏳ — Storage local + índice SQLite
+## Fase 2 ✅ — Storage local + índice SQLite
 
 **Objetivo**: leer/escribir el filesystem `archivo/` y construir un índice SQLite consultable.
 

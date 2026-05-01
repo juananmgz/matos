@@ -3,7 +3,7 @@
 Cubre:
 - Construcción mínima y completa de cada entidad.
 - Invariantes (kind ↔ file/url, source.type ↔ release/broadcast, rangos).
-- Caso real de uso: "Ringorrando — J#4" (verdad externa vs. archivo).
+- Caso real de uso: "Ringorrango — J#4" (verdad externa vs. archivo).
 - Roundtrip JSON: model → dump → load → equals.
 - `compute_status` del Item.
 """
@@ -163,10 +163,10 @@ class TestSegment:
             Segment(offset_s=0, duration_s=0)
 
 
-# ─── Caso de uso: Ringorrando — J#4 ──────────────────────────────────────────
+# ─── Caso de uso: Ringorrango — J#4 ──────────────────────────────────────────
 
 
-class TestRingorrandoCase:
+class TestRingorrangoCase:
     """Verdad externa (Spotify dice 'J#4') vs. verdad del archivo
     (es la jota ladeada de Lubián, recopilada por contraste con grabaciones
     de campo). Ambas conviven en el mismo Item."""
@@ -175,7 +175,7 @@ class TestRingorrandoCase:
         spotify_url = "https://open.spotify.com/track/abc123def456"
         raw = {
             "name": "J#4",
-            "artists": [{"name": "Ringorrando"}],
+            "artists": [{"name": "Ringorrango"}],
             "album": {"name": "..."},
         }
 
@@ -187,7 +187,7 @@ class TestRingorrandoCase:
             geo_id=uuid4(),
             song_id=uuid4(),
             context=ItemContext(
-                interprete=["Ringorrando"],
+                interprete=["Ringorrango"],
                 fecha="2023",
                 lugar_origen="Lubián, Zamora",
             ),
@@ -198,11 +198,11 @@ class TestRingorrandoCase:
                     track_id="abc123def456",
                     track_number=4,
                     track_title_external="J#4",
-                    artist="Ringorrando",
+                    artist="Ringorrango",
                     release_year=2023,
                 ),
             ),
-            rights=Rights(license="all-rights-reserved", holder="Ringorrando"),
+            rights=Rights(license="all-rights-reserved", holder="Ringorrango"),
             external_metadata=ExternalMetadata(
                 source=ExternalSource.spotify_api,
                 fetched_at=_now(),
@@ -215,7 +215,7 @@ class TestRingorrandoCase:
                 edited_by="juananmgz",
                 edited_at=_now(),
                 notes=(
-                    "Ringorrando codifica títulos como J#1..J#N. Este es la "
+                    "Ringorrango codifica títulos como J#1..J#N. Este es la "
                     "jota ladeada de Lubián; confirmado por contraste con "
                     "grabación de campo de 1985."
                 ),
