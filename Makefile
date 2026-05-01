@@ -98,6 +98,10 @@ format:              ## auto-format backend + frontend
 cli:                 ## ejecuta CLI matos (args="<subcomando>")
 	$(COMPOSE) exec backend uv run matos $(args)
 
+.PHONY: init
+init:                ## inicializa archivo/ con _index.json + CCAA ejemplo
+	$(COMPOSE) exec backend uv run matos init /data/archivo $(args)
+
 .PHONY: reindex
 reindex:             ## reconstruye índice SQLite (≥ fase 2)
 	$(COMPOSE) exec backend uv run matos reindex
@@ -127,6 +131,17 @@ backup:              ## tar archivo/ + dump índice → backups/<fecha>.tar.gz
 .PHONY: restore
 restore:             ## restaura backup (args="<fichero.tar.gz>")
 	./scripts/restore.sh $(args)
+
+# ─── documentación ──────────────────────────────────────────────────────────
+
+.PHONY: db-diagram
+db-diagram:          ## regenera documentation/db-schema.png desde el .dot
+	docker run --rm \
+		-v "$(PWD)/documentation:/work" \
+		-w /work alpine \
+		sh -c "apk add --no-cache graphviz ttf-dejavu fontconfig >/dev/null 2>&1 && \
+		       dot -Tpng db-schema.dot -o db-schema.png"
+	@echo "  ✓ documentation/db-schema.png"
 
 # ─── limpieza ───────────────────────────────────────────────────────────────
 

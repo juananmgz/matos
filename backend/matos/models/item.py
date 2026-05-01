@@ -132,7 +132,7 @@ class ReleaseInfo(MatosModel):
     track_number: int | None = Field(default=None, ge=1)
     track_title_external: str | None = None
     """Título tal-y-como-aparece-en-la-plataforma. Útil cuando el artista
-    codifica títulos (caso "Ringorrando — J#4")."""
+    codifica títulos (caso "Ringorrango — J#4")."""
 
     album_title: str | None = None
     album_id: str | None = None
@@ -232,7 +232,7 @@ class Item(MatosModel):
 
     geo_id: UUID | None = None
     """Origen geográfico. NO es la ubicación del artista; es el origen
-    cultural del repertorio (ej. Lubián para "J#4" de Ringorrando)."""
+    cultural del repertorio (ej. Lubián para "J#4" de Ringorrango)."""
 
     song_id: UUID | None = None
     """Canción canónica que agrupa este item con otras versiones."""
