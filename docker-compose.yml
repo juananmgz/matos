@@ -1,0 +1,69 @@
+# Base compose. docker-compose.override.yml (auto) añade dev.
+# docker-compose.prod.yml (explícito) sustituye por prod.
+name: matos
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      MATOS_DOMAIN: ${MATOS_DOMAIN:-matos.local}
+      FRONTEND_UPSTREAM: ${FRONTEND_UPSTREAM:-frontend:5173}
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks: [matos_net]
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+      target: prod
+    image: matos-backend:${MATOS_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MATOS_ENV: ${MATOS_ENV:-prod}
+      MATOS_ARCHIVE_PATH: /data/archivo
+      MATOS_INDEX_PATH: /data/index/matos.db
+    volumes:
+      - ./archivo:/data/archivo:rw
+      - matos_index:/data/index
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    networks: [matos_net]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      target: prod
+    image: matos-frontend:${MATOS_TAG:-latest}
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks: [matos_net]
+
+volumes:
+  caddy_data:
+  caddy_config:
+  matos_index:
+
+networks:
+  matos_net:
+    driver: bridge

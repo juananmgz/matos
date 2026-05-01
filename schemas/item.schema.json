@@ -1,0 +1,757 @@
+{
+  "$defs": {
+    "BroadcastInfo": {
+      "description": "Cuando `source.type == broadcast`.",
+      "properties": {
+        "platform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Platform"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "program": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Program"
+        },
+        "episode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Episode"
+        },
+        "air_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Air Date"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        }
+      },
+      "title": "BroadcastInfo",
+      "type": "object"
+    },
+    "EnrichmentInfo": {
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/EnrichmentStatus",
+          "default": "pending"
+        },
+        "edited_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Edited By"
+        },
+        "edited_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Edited At"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "title": "EnrichmentInfo",
+      "type": "object"
+    },
+    "EnrichmentStatus": {
+      "enum": [
+        "pending",
+        "partial",
+        "complete",
+        "needs_review"
+      ],
+      "title": "EnrichmentStatus",
+      "type": "string"
+    },
+    "ExternalMetadata": {
+      "description": "Caché crudo de la plataforma externa. Opaca, no validada por schema.\n\nSolo se actualiza con `POST /api/items/{id}/refetch`. **Nunca editar a\nmano**. `raw_hash` permite detectar cambios externos vs. la última\nversión vista durante la edición → triggers `needs_review`.",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/ExternalSource"
+        },
+        "fetched_at": {
+          "format": "date-time",
+          "title": "Fetched At",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "raw": {
+          "additionalProperties": true,
+          "title": "Raw",
+          "type": "object"
+        },
+        "raw_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Raw Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "fetched_at",
+        "url",
+        "raw",
+        "raw_hash"
+      ],
+      "title": "ExternalMetadata",
+      "type": "object"
+    },
+    "ExternalSource": {
+      "description": "De qué API vino la `external_metadata.raw`.",
+      "enum": [
+        "spotify_api",
+        "youtube_oembed",
+        "youtube_data_api",
+        "wikidata",
+        "wikimedia_commons",
+        "other"
+      ],
+      "title": "ExternalSource",
+      "type": "string"
+    },
+    "ItemContext": {
+      "description": "Contexto etnográfico — quién, cuándo, dónde.",
+      "properties": {
+        "interprete": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Interprete",
+          "type": "array"
+        },
+        "interprete_original": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interprete Original"
+        },
+        "recopilador": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Recopilador",
+          "type": "array"
+        },
+        "fecha": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fecha"
+        },
+        "lugar_grabacion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Lugar"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lugar_origen": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lugar Origen"
+        },
+        "evento": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evento"
+        }
+      },
+      "title": "ItemContext",
+      "type": "object"
+    },
+    "ItemKind": {
+      "enum": [
+        "audio",
+        "video",
+        "score",
+        "lyrics",
+        "url"
+      ],
+      "title": "ItemKind",
+      "type": "string"
+    },
+    "ItemSource": {
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/SourceType"
+        },
+        "release": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReleaseInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "broadcast": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BroadcastInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "ItemSource",
+      "type": "object"
+    },
+    "Lugar": {
+      "description": "Ubicación de grabación/origen. Texto + opcionalmente coordenadas.",
+      "properties": {
+        "nombre": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Nombre"
+        },
+        "lat": {
+          "anyOf": [
+            {
+              "maximum": 90,
+              "minimum": -90,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lat"
+        },
+        "lon": {
+          "anyOf": [
+            {
+              "maximum": 180,
+              "minimum": -180,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lon"
+        }
+      },
+      "title": "Lugar",
+      "type": "object"
+    },
+    "Platform": {
+      "enum": [
+        "spotify",
+        "youtube",
+        "apple_music",
+        "bandcamp",
+        "soundcloud",
+        "facebook",
+        "wikimedia",
+        "archive_org",
+        "other"
+      ],
+      "title": "Platform",
+      "type": "string"
+    },
+    "ReleaseInfo": {
+      "description": "Cuando `source.type == release`. Disco/EP/single en plataforma.",
+      "properties": {
+        "platform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Platform"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "track_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Track Id"
+        },
+        "track_number": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Track Number"
+        },
+        "track_title_external": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Track Title External"
+        },
+        "album_title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Album Title"
+        },
+        "album_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Album Id"
+        },
+        "artist": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artist"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "release_year": {
+          "anyOf": [
+            {
+              "maximum": 2100,
+              "minimum": 1850,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Release Year"
+        },
+        "isrc": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Isrc"
+        }
+      },
+      "title": "ReleaseInfo",
+      "type": "object"
+    },
+    "Rights": {
+      "properties": {
+        "license": {
+          "title": "License",
+          "type": "string"
+        },
+        "holder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holder"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "license"
+      ],
+      "title": "Rights",
+      "type": "object"
+    },
+    "Segment": {
+      "description": "Sub-sección de un media más largo.\n\nCuando un track de Spotify o un vídeo de YouTube contiene varias canciones\ndistintas (medley, álbum-track con varias jotas), se crea un Item por cada\ncanción con la misma `url` y un `Segment` distinto.",
+      "properties": {
+        "offset_s": {
+          "minimum": 0,
+          "title": "Offset S",
+          "type": "integer"
+        },
+        "duration_s": {
+          "exclusiveMinimum": 0,
+          "title": "Duration S",
+          "type": "integer"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        }
+      },
+      "required": [
+        "offset_s",
+        "duration_s"
+      ],
+      "title": "Segment",
+      "type": "object"
+    },
+    "SourceType": {
+      "description": "Origen del item.\n\n- `fieldwork`: grabación de campo (recopilación etnográfica).\n- `release`: edición comercial (disco, EP, single en plataforma).\n- `broadcast`: emisión radio/TV/internet.\n- `derived`: versión derivada (remix, transcripción, cover de cover).",
+      "enum": [
+        "fieldwork",
+        "release",
+        "broadcast",
+        "derived"
+      ],
+      "title": "SourceType",
+      "type": "string"
+    }
+  },
+  "description": "Una unidad concreta del archivo: audio, vídeo, partitura, letra, o URL.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "$ref": "#/$defs/ItemKind"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "file": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "File"
+    },
+    "url": {
+      "anyOf": [
+        {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Url"
+    },
+    "geo_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Geo Id"
+    },
+    "song_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Song Id"
+    },
+    "segment": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Segment"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "context": {
+      "$ref": "#/$defs/ItemContext"
+    },
+    "source": {
+      "$ref": "#/$defs/ItemSource"
+    },
+    "rights": {
+      "$ref": "#/$defs/Rights"
+    },
+    "external_metadata": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExternalMetadata"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "enrichment": {
+      "$ref": "#/$defs/EnrichmentInfo"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
+    "sha256": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sha256"
+    },
+    "mime_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mime Type"
+    },
+    "duration_s": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Duration S"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Updated At"
+    }
+  },
+  "required": [
+    "id",
+    "kind",
+    "title",
+    "source",
+    "rights",
+    "created_at"
+  ],
+  "title": "Item",
+  "type": "object",
+  "$id": "https://matos.local/schemas/item.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

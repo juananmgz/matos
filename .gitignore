@@ -1,0 +1,38 @@
+# env
+.env
+.env.local
+
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# node
+node_modules/
+.pnpm-store/
+
+# editor
+.idea/
+.vscode/
+!.vscode/extensions.json
+*.swp
+.DS_Store
+
+# matos data — el archivo y el índice viven en volúmenes Docker
+archivo/**
+!archivo/.gitkeep
+data/
+backups/
+
+# logs
+*.log
+logs/

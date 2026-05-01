@@ -1,0 +1,35 @@
+# Reverse proxy MATOS.
+# - /api/* → backend:8000
+# - resto  → FRONTEND_UPSTREAM (vite dev en :5173 o caddy estático en :80)
+#
+# Variables resueltas desde environment del servicio caddy en docker-compose.
+{
+    auto_https disable_redirects
+    local_certs
+}
+
+{$MATOS_DOMAIN:matos.local}, localhost {
+    tls internal
+
+    encode zstd gzip
+
+    # API → backend
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    # Vite HMR websocket en dev (no afecta a prod, el path no existe)
+    @vite_ws {
+        path /vite-hmr* /@vite/client*
+        header Connection *Upgrade*
+        header Upgrade websocket
+    }
+    handle @vite_ws {
+        reverse_proxy {$FRONTEND_UPSTREAM:frontend:5173}
+    }
+
+    # Resto → frontend (vite o estático)
+    handle {
+        reverse_proxy {$FRONTEND_UPSTREAM:frontend:5173}
+    }
+}

@@ -1,0 +1,78 @@
+[project]
+name = "matos"
+version = "0.1.0"
+description = "MATOS — Reproductor del archivo de etnomusicología MNEMOSINE"
+requires-python = ">=3.12"
+license = { text = "AGPL-3.0-or-later" }
+authors = [{ name = "Juan Antonio Martín" }]
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.4",
+    "httpx>=0.27",
+    "typer>=0.12",
+    "anyio>=4.4",
+]
+
+[project.scripts]
+matos = "matos.cli:app"
+
+[tool.uv]
+package = true
+dev-dependencies = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=5",
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["matos"]
+
+# ─── ruff ──────────────────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",      # pycodestyle
+    "F",           # pyflakes
+    "I",           # isort
+    "N",           # pep8-naming
+    "UP",          # pyupgrade
+    "B",           # flake8-bugbear
+    "A",           # flake8-builtins
+    "C4",          # flake8-comprehensions
+    "PT",          # flake8-pytest-style
+    "RET",         # flake8-return
+    "SIM",         # flake8-simplify
+]
+ignore = [
+    "E501",        # line length — handled by formatter
+    "TC001",       # flake8-type-checking — falso-positivo en modelos Pydantic
+    "TC002",       # v2: los tipos se usan en runtime para construir Field,
+    "TC003",       # no solo como anotaciones.
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ─── pytest ────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-ra -q"
+
+# ─── mypy ──────────────────────────────────────────────────────────────────
+[tool.mypy]
+strict = true
+files = ["matos"]
+plugins = ["pydantic.mypy"]

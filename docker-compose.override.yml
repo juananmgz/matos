@@ -1,0 +1,39 @@
+# Overlay de DESARROLLO. Auto-cargado por docker compose.
+# Solo bind-monta SUBCARPETAS de source para hot reload — `.venv` y `node_modules`
+# viven en la imagen sin colisión y se regeneran al hacer `make rebuild`.
+
+services:
+  backend:
+    build:
+      target: dev
+    image: matos-backend:dev
+    environment:
+      MATOS_ENV: dev
+    volumes:
+      - ./backend/matos:/app/matos:cached
+      - ./backend/tests:/app/tests:cached
+      - ./schemas:/app/schemas:rw
+      - ./archivo:/data/archivo:rw
+      - matos_index:/data/index
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      target: dev
+    image: matos-frontend:dev
+    volumes:
+      - ./frontend/src:/app/src:cached
+      - ./frontend/public:/app/public:cached
+      - ./frontend/index.html:/app/index.html:cached
+      - ./frontend/vite.config.ts:/app/vite.config.ts:cached
+      - ./frontend/tsconfig.json:/app/tsconfig.json:cached
+      - ./frontend/tsconfig.node.json:/app/tsconfig.node.json:cached
+    ports:
+      - "5173:5173"
+    expose:
+      - "5173"
+
+  caddy:
+    environment:
+      FRONTEND_UPSTREAM: frontend:5173

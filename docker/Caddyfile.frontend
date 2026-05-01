@@ -1,0 +1,8 @@
+# Caddyfile interno del contenedor frontend (etapa prod).
+# Sirve los estáticos de Vite en :80 con SPA fallback.
+:80 {
+    root * /srv
+    encode zstd gzip
+    try_files {path} /index.html
+    file_server
+}

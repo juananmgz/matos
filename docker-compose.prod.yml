@@ -1,0 +1,24 @@
+# Overlay de PRODUCCIÓN. NO se carga automáticamente.
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# (Makefile: `make up-prod`)
+
+services:
+  backend:
+    image: matos-backend:${MATOS_TAG:-latest}
+    environment:
+      MATOS_ENV: prod
+    # sin bind mount de código: usa el contenido baked en la imagen
+    volumes:
+      - ./archivo:/data/archivo:rw
+      - matos_index:/data/index
+    # sin puerto expuesto al host: solo a través de Caddy
+    ports: []
+
+  frontend:
+    image: matos-frontend:${MATOS_TAG:-latest}
+    # estáticos servidos por Caddy interno de la imagen frontend en :80
+    ports: []
+
+  caddy:
+    environment:
+      FRONTEND_UPSTREAM: frontend:80

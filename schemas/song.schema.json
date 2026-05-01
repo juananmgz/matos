@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "Relation": {
+      "description": "Arista dirigida entre dos items dentro de un Song.\n\nUsamos `source` y `target` (no `from`/`to`) para evitar colisión con la\npalabra reservada `from` de Python al deserializar JSON.",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/RelationType"
+        },
+        "source": {
+          "format": "uuid",
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "format": "uuid",
+          "title": "Target",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "type",
+        "source",
+        "target"
+      ],
+      "title": "Relation",
+      "type": "object"
+    },
+    "RelationType": {
+      "enum": [
+        "version_of",
+        "lyrics_of",
+        "score_of",
+        "cover_of",
+        "derived_from",
+        "same_as"
+      ],
+      "title": "RelationType",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "title_variants": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Title Variants",
+      "type": "array"
+    },
+    "geo_id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Geo Id"
+    },
+    "items": {
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Items",
+      "type": "array"
+    },
+    "relations": {
+      "items": {
+        "$ref": "#/$defs/Relation"
+      },
+      "title": "Relations",
+      "type": "array"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "title"
+  ],
+  "title": "Song",
+  "type": "object",
+  "$id": "https://matos.local/schemas/song.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

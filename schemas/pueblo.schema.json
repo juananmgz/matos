@@ -1,0 +1,153 @@
+{
+  "$defs": {
+    "Centroid": {
+      "description": "Punto representativo (no centroide geométrico estricto).",
+      "properties": {
+        "lat": {
+          "maximum": 90,
+          "minimum": -90,
+          "title": "Lat",
+          "type": "number"
+        },
+        "lon": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Lon",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lat",
+        "lon"
+      ],
+      "title": "Centroid",
+      "type": "object"
+    },
+    "ComarcaInfo": {
+      "properties": {
+        "nombre": {
+          "minLength": 1,
+          "title": "Nombre",
+          "type": "string"
+        },
+        "tipo": {
+          "$ref": "#/$defs/ComarcaTipo"
+        },
+        "fuente": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fuente"
+        }
+      },
+      "required": [
+        "nombre",
+        "tipo"
+      ],
+      "title": "ComarcaInfo",
+      "type": "object"
+    },
+    "ComarcaTipo": {
+      "description": "Origen y validez de la delimitación. Crítico mostrarlo en UI.",
+      "enum": [
+        "legal",
+        "funcional",
+        "etnomusicologica",
+        "manual"
+      ],
+      "title": "ComarcaTipo",
+      "type": "string"
+    }
+  },
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "nombre": {
+      "minLength": 1,
+      "title": "Nombre",
+      "type": "string"
+    },
+    "notas": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notas"
+    },
+    "level": {
+      "const": "pueblo",
+      "default": "pueblo",
+      "title": "Level",
+      "type": "string"
+    },
+    "codigo_ine": {
+      "anyOf": [
+        {
+          "pattern": "^\\d{5}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Código municipio INE (5 dígitos).",
+      "title": "Codigo Ine"
+    },
+    "comarca": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ComarcaInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "subcomarca": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ComarcaInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "centroid": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Centroid"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "id",
+    "nombre"
+  ],
+  "title": "Pueblo",
+  "type": "object",
+  "$id": "https://matos.local/schemas/pueblo.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,0 +1,53 @@
+{
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "nombre": {
+      "minLength": 1,
+      "title": "Nombre",
+      "type": "string"
+    },
+    "notas": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notas"
+    },
+    "level": {
+      "const": "provincia",
+      "default": "provincia",
+      "title": "Level",
+      "type": "string"
+    },
+    "codigo_ine": {
+      "anyOf": [
+        {
+          "pattern": "^\\d{2}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Codigo Ine"
+    }
+  },
+  "required": [
+    "id",
+    "nombre"
+  ],
+  "title": "Provincia",
+  "type": "object",
+  "$id": "https://matos.local/schemas/provincia.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

@@ -1,0 +1,53 @@
+{
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "nombre": {
+      "minLength": 1,
+      "title": "Nombre",
+      "type": "string"
+    },
+    "notas": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notas"
+    },
+    "level": {
+      "const": "ccaa",
+      "default": "ccaa",
+      "title": "Level",
+      "type": "string"
+    },
+    "codigo": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Código CCAA INE (1-19).",
+      "title": "Codigo"
+    }
+  },
+  "required": [
+    "id",
+    "nombre"
+  ],
+  "title": "CCAA",
+  "type": "object",
+  "$id": "https://matos.local/schemas/ccaa.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
