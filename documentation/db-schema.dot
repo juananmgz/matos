@@ -1,0 +1,178 @@
+// MATOS — esquema del índice SQLite (fase 2).
+// Renderizar:  dot -Tpng db-schema.dot -o db-schema.png
+//
+// Las tablas son nodos HTML-like con su PK marcada en negrita y las FK con
+// símbolo →. Los enums se anotan junto al campo. Las relaciones FK se dibujan
+// como flechas etiquetadas con el campo origen.
+
+digraph MATOS_db {
+    rankdir = LR;
+    bgcolor = "#fdfdfd";
+    pad = 0.4;
+    nodesep = 0.8;
+    ranksep = 1.4;
+    splines = spline;
+    dpi = 144;
+
+    node [
+        shape = plaintext,
+        fontname = "Helvetica",
+        fontsize = 11
+    ];
+    edge [
+        fontname = "Helvetica",
+        fontsize = 9,
+        color = "#555555",
+        arrowsize = 0.8
+    ];
+
+    // ─── tablas ──────────────────────────────────────────────────────
+
+    geo_unit [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#1f6feb" COLSPAN="2"><FONT COLOR="white"><B>geo_unit</B>  ·  CCAA / Provincia / Pueblo</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="id"><B>id</B>  PK</TD><TD ALIGN="LEFT">TEXT (UUID)</TD></TR>
+        <TR><TD ALIGN="LEFT">level</TD><TD ALIGN="LEFT">ccaa | provincia | pueblo</TD></TR>
+        <TR><TD ALIGN="LEFT">nombre</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="parent">parent_id  → geo_unit.id</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">path  UK</TD><TD ALIGN="LEFT">TEXT (ltree)</TD></TR>
+        <TR><TD ALIGN="LEFT">slug</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">codigo</TD><TD ALIGN="LEFT">TEXT (INE)</TD></TR>
+        <TR><TD ALIGN="LEFT">fs_path  UK</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">extra_json</TD><TD ALIGN="LEFT">TEXT (comarca, centroid, notas)</TD></TR>
+      </TABLE>
+    >];
+
+    song [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#a371f7" COLSPAN="2"><FONT COLOR="white"><B>song</B>  ·  canción canónica</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="id"><B>id</B>  PK</TD><TD ALIGN="LEFT">TEXT (UUID)</TD></TR>
+        <TR><TD ALIGN="LEFT">title</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="geo">geo_id  → geo_unit.id</TD><TD ALIGN="LEFT">TEXT (nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT">title_variants</TD><TD ALIGN="LEFT">TEXT (JSON [])</TD></TR>
+        <TR><TD ALIGN="LEFT">tags</TD><TD ALIGN="LEFT">TEXT (JSON [])</TD></TR>
+        <TR><TD ALIGN="LEFT">notes</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">fs_path  UK</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+      </TABLE>
+    >];
+
+    item [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#1a7f37" COLSPAN="2"><FONT COLOR="white"><B>item</B>  ·  audio / video / score / lyrics / url</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="id"><B>id</B>  PK</TD><TD ALIGN="LEFT">TEXT (UUID)</TD></TR>
+        <TR><TD ALIGN="LEFT">kind</TD><TD ALIGN="LEFT">audio | video | score | lyrics | url</TD></TR>
+        <TR><TD ALIGN="LEFT">title</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">file</TD><TD ALIGN="LEFT">TEXT (nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT">url</TD><TD ALIGN="LEFT">TEXT (nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="geo">geo_id  → geo_unit.id</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="song">song_id  → song.id</TD><TD ALIGN="LEFT">TEXT (nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT">sha256</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">mime_type</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">duration_s</TD><TD ALIGN="LEFT">INTEGER</TD></TR>
+        <TR><TD ALIGN="LEFT">source_type</TD><TD ALIGN="LEFT">fieldwork | release | broadcast | derived</TD></TR>
+        <TR><TD ALIGN="LEFT">enrichment_status</TD><TD ALIGN="LEFT">pending | partial | complete | needs_review</TD></TR>
+        <TR><TD ALIGN="LEFT">has_external</TD><TD ALIGN="LEFT">INTEGER (0/1)</TD></TR>
+        <TR><TD ALIGN="LEFT">platform</TD><TD ALIGN="LEFT">spotify | youtube | …</TD></TR>
+        <TR><TD ALIGN="LEFT">interpretes</TD><TD ALIGN="LEFT">TEXT (denormalizado para FTS)</TD></TR>
+        <TR><TD ALIGN="LEFT">tags</TD><TD ALIGN="LEFT">TEXT (JSON [])</TD></TR>
+        <TR><TD ALIGN="LEFT">segment_offset_s</TD><TD ALIGN="LEFT">INTEGER (nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT">segment_duration_s</TD><TD ALIGN="LEFT">INTEGER (nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT">raw_json</TD><TD ALIGN="LEFT">TEXT (Item Pydantic completo)</TD></TR>
+        <TR><TD ALIGN="LEFT">created_at</TD><TD ALIGN="LEFT">TEXT (ISO)</TD></TR>
+        <TR><TD ALIGN="LEFT">updated_at</TD><TD ALIGN="LEFT">TEXT (ISO, nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT">fs_path  UK</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+      </TABLE>
+    >];
+
+    relation [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#bf8700" COLSPAN="2"><FONT COLOR="white"><B>relation</B>  ·  arista dentro de un Song</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="id"><B>id</B>  PK</TD><TD ALIGN="LEFT">INTEGER (autoinc)</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="song">song_id  → song.id</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">type</TD><TD ALIGN="LEFT">version_of | lyrics_of | score_of |<BR/>cover_of | derived_from | same_as</TD></TR>
+        <TR><TD ALIGN="LEFT">src_item</TD><TD ALIGN="LEFT">TEXT (UUID item, sin FK)</TD></TR>
+        <TR><TD ALIGN="LEFT">tgt_item</TD><TD ALIGN="LEFT">TEXT (UUID item, sin FK)</TD></TR>
+        <TR><TD ALIGN="LEFT">notes</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+      </TABLE>
+    >];
+
+    meta [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#6e7781" COLSPAN="2"><FONT COLOR="white"><B>meta</B>  ·  metadatos del índice</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT"><B>key</B>  PK</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">value</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT" COLSPAN="2"><FONT POINT-SIZE="9" COLOR="#555">schema_version, built_at,<BR/>ccaa_count, items_count, …</FONT></TD></TR>
+      </TABLE>
+    >];
+
+    item_fts [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#cf222e"><FONT COLOR="white"><B>item_fts</B>  ·  FTS5 virtual</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT">title  ·  interpretes  ·  tags</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#555">tokenize: unicode61 remove_diacritics 2<BR/>sync vía triggers item_ai/_ad/_au</FONT></TD></TR>
+      </TABLE>
+    >];
+
+    song_fts [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#cf222e"><FONT COLOR="white"><B>song_fts</B>  ·  FTS5 virtual</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT">title  ·  title_variants</TD></TR>
+        <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#555">tokenize: unicode61 remove_diacritics 2<BR/>sync vía triggers song_ai/_ad/_au</FONT></TD></TR>
+      </TABLE>
+    >];
+
+    // ─── relaciones FK ───────────────────────────────────────────────
+
+    geo_unit:parent -> geo_unit:id [
+        label = "parent_id\n(self, jerarquía CCAA→Prov→Pueblo)",
+        color = "#1f6feb",
+        constraint = false
+    ];
+
+    song:geo -> geo_unit:id [
+        label = "geo_id",
+        color = "#1f6feb"
+    ];
+
+    item:geo -> geo_unit:id [
+        label = "geo_id",
+        color = "#1f6feb"
+    ];
+
+    item:song -> song:id [
+        label = "song_id",
+        color = "#a371f7"
+    ];
+
+    relation:song -> song:id [
+        label = "song_id\n(ON DELETE CASCADE)",
+        color = "#a371f7"
+    ];
+
+    // FTS sync (línea punteada — no son FKs reales)
+    item_fts -> item [
+        style = "dashed",
+        arrowhead = "none",
+        label = "espeja vía triggers",
+        color = "#cf222e"
+    ];
+    song_fts -> song [
+        style = "dashed",
+        arrowhead = "none",
+        label = "espeja vía triggers",
+        color = "#cf222e"
+    ];
+
+    // ─── leyenda ─────────────────────────────────────────────────────
+    {
+        rank = sink;
+        legend [label=<
+          <TABLE BORDER="0" CELLBORDER="0" CELLPADDING="4">
+            <TR><TD ALIGN="LEFT"><B>MATOS — índice SQLite (fase 2)</B></TD></TR>
+            <TR><TD ALIGN="LEFT"><FONT POINT-SIZE="9">El índice es DERIVADO del filesystem `archivo/`.<BR/>
+            Se reconstruye con `make reindex` (atómico, vía .tmp + rename).<BR/>
+            Source-of-truth = JSON sidecars; SQLite = caché para queries.</FONT></TD></TR>
+          </TABLE>
+        >];
+    }
+}

@@ -132,6 +132,17 @@ backup:              ## tar archivo/ + dump índice → backups/<fecha>.tar.gz
 restore:             ## restaura backup (args="<fichero.tar.gz>")
 	./scripts/restore.sh $(args)
 
+# ─── documentación ──────────────────────────────────────────────────────────
+
+.PHONY: db-diagram
+db-diagram:          ## regenera documentation/db-schema.png desde el .dot
+	docker run --rm \
+		-v "$(PWD)/documentation:/work" \
+		-w /work alpine \
+		sh -c "apk add --no-cache graphviz ttf-dejavu fontconfig >/dev/null 2>&1 && \
+		       dot -Tpng db-schema.dot -o db-schema.png"
+	@echo "  ✓ documentation/db-schema.png"
+
 # ─── limpieza ───────────────────────────────────────────────────────────────
 
 .PHONY: clean
