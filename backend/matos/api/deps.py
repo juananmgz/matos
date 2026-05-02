@@ -18,6 +18,11 @@ def get_db_path() -> Path:
     return settings.index_path
 
 
+def get_archive_root() -> Path:
+    """Raíz del archivo (filesystem). Override-able en tests."""
+    return settings.archive_path
+
+
 def get_conn(db_path: Path = Depends(get_db_path)) -> Iterator[sqlite3.Connection]:
     if not db_path.exists():
         raise HTTPException(

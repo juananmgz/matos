@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import __version__
-from .api import discos, items, songs, tree
+from .api import discos, items, media, songs, tree
 from .config import settings
 
 app = FastAPI(
@@ -34,6 +34,7 @@ app.include_router(tree.router)
 app.include_router(items.router)
 app.include_router(songs.router)
 app.include_router(discos.router)
+app.include_router(media.router)
 
 
 @app.get("/api/health")
