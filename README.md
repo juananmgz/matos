@@ -80,10 +80,10 @@ MATOS/
 │   │   ├── main.py              # FastAPI app + /api/health
 │   │   ├── config.py            # settings (pydantic-settings, env vars MATOS_*)
 │   │   ├── cli.py               # typer CLI (init, validate, reindex, export-schemas)
-│   │   ├── models/              # Pydantic v2: GeoUnit, Item, Song, ArchiveIndex
+│   │   ├── models/              # Pydantic v2: GeoUnit, Huerfanas, Item, Song, Disco, DiscoTrack, ArchiveIndex
 │   │   ├── storage/             # StorageAdapter (base) + LocalStorage (filesystem)
 │   │   └── index/               # SQLite: schema.sql, builder.py, queries.py
-│   └── tests/                   # pytest (46 tests)
+│   └── tests/                   # pytest (54 tests)
 ├── frontend/                    # React 18 + Vite + TypeScript (fase 5+)
 ├── docker/                      # Dockerfiles + Caddyfile
 ├── scripts/                     # lock, backup, restore, release
@@ -98,11 +98,12 @@ MATOS/
 
 ## Modelo de datos
 
-Tres entidades principales almacenadas como JSON sidecars en `archivo/`:
+Entidades almacenadas como JSON sidecars en `archivo/`:
 
-- **GeoUnit** (`_ccaa.json` / `_provincia.json` / `_pueblo.json`): jerarquía geográfica CCAA → Provincia → Pueblo.
+- **GeoUnit** (`_ccaa.json` / `_provincia.json` / `_pueblo.json` / `_huerfanas.json`): jerarquía geográfica CCAA → Provincia → Pueblo bajo `archivo/geo/`. `_huerfanas/` puede vivir en cualquier nivel para canciones de origen geográfico parcialmente conocido.
 - **Item** (`<uuid>.meta.json`): unidad atómica — audio, vídeo, partitura, letra o URL externa.
 - **Song** (`<uuid>.song.json`): canción canónica que agrupa items y declara relaciones entre ellos.
+- **Disco** (`_disco.json`) + **DiscoTrack** (`metadatos/<...>.track.json`): edición discográfica bajo `archivo/discos/<artista>/(YYYY) titulo/`. Cada track contiene 1+ **TrackSegment**s que mapean tramos de audio a `Song`s del archivo geográfico (bidireccional).
 
 El índice SQLite (`/data/index/matos.db`) es **derivado** del filesystem y se reconstruye con `make reindex`. Ver esquema en [`documentation/db-schema.png`](documentation/db-schema.png).
 
@@ -123,6 +124,7 @@ VSCode/Cursor: "Reopen in Container" abre el editor dentro del contenedor (`.dev
 |---|---|---|
 | 0 | Scaffold + dockerización | ✅ |
 | 1 | Schemas Pydantic + JSON Schema export | ✅ |
+| 1.5 | Discos + huérfanas (layout `geo/` + `discos/`) | ✅ |
 | 2 | Storage local + índice SQLite | ✅ |
 | 3 | API lectura (tree, items, songs) | ⏳ |
 | 4 | API streaming + URL resolution | ⏳ |

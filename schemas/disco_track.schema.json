@@ -1,0 +1,202 @@
+{
+  "$defs": {
+    "TrackSegment": {
+      "description": "Tramo de un `DiscoTrack` que se identifica con una canción tradicional.\n\n`offset_s` / `duration_s` son opcionales:\n- Sin `offset_s` → el segmento empieza al inicio del track.\n- Sin `duration_s` → el segmento llega hasta el final del track.\n- Sin ninguno de los dos → el track entero es la canción.\n\n`song_id` puede ser `None` en dos casos:\n- El segmento aún no se ha mapeado a una Song concreta (en curación).\n- Se sabe que no existe Song en el archivo (`unmatched=true` lo declara\n  explícitamente para distinguir de \"sin curar\").",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "song_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Song Id"
+        },
+        "offset_s": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Offset S"
+        },
+        "duration_s": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration S"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label"
+        },
+        "unmatched": {
+          "default": false,
+          "title": "Unmatched",
+          "type": "boolean"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "TrackSegment",
+      "type": "object"
+    }
+  },
+  "description": "Un fichero sonoro del disco. Sidecar: `metadatos/<nombre>.track.json`.\n\n`file` es el nombre del binario relativo a la carpeta del disco\n(no a `metadatos/`). Esto permite mover los sidecars de carpeta sin\nromper la referencia y deja claro que el binario es hermano del\n`_disco.json`.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "disco_id": {
+      "format": "uuid",
+      "title": "Disco Id",
+      "type": "string"
+    },
+    "track_no": {
+      "minimum": 1,
+      "title": "Track No",
+      "type": "integer"
+    },
+    "title": {
+      "minLength": 1,
+      "title": "Title",
+      "type": "string"
+    },
+    "title_external": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Title External"
+    },
+    "file": {
+      "minLength": 1,
+      "title": "File",
+      "type": "string"
+    },
+    "sha256": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sha256"
+    },
+    "duration_s": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Duration S"
+    },
+    "mime_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mime Type"
+    },
+    "segments": {
+      "items": {
+        "$ref": "#/$defs/TrackSegment"
+      },
+      "title": "Segments",
+      "type": "array"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "disco_id",
+    "track_no",
+    "title",
+    "file"
+  ],
+  "title": "DiscoTrack",
+  "type": "object",
+  "$id": "https://matos.local/schemas/disco_track.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
