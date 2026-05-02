@@ -78,7 +78,7 @@ release:             ## tag + push a $$REGISTRY (definir en .env)
 .PHONY: test
 test:                ## tests backend + frontend
 	$(COMPOSE) exec backend uv run pytest
-	$(COMPOSE) exec frontend pnpm test --run || true
+	$(COMPOSE) exec frontend pnpm exec vitest run --passWithNoTests || true
 
 .PHONY: lint
 lint:                ## lint backend + frontend
