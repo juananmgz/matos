@@ -23,7 +23,7 @@ fase a fase con `make test` verde y commit nombrado `feat: phase N — <título>
 | 1  | Schemas Pydantic + JSON Schema export | ✅ |
 | 1.5| Discos + huérfanas (layout `geo/` + `discos/`) | ✅ |
 | 2  | Storage local + índice SQLite | ✅ |
-| 3  | API lectura (tree, items, songs) | ⏳ |
+| 3  | API lectura (tree, items, songs) | ✅ |
 | 4  | API streaming + URL resolution | ⏳ |
 | 5  | Frontend navegación jerárquica | ⏳ |
 | 6  | Player + Media Session API | ⏳ |
@@ -185,22 +185,40 @@ Nueva carpeta hermana `archivo/discos/<artista>/(YYYY) titulo/`.
 
 ---
 
-## Fase 3 ⏳ — API lectura
+## Fase 3 ✅ — API lectura
 
 **Objetivo**: endpoints FastAPI para navegar el archivo desde el frontend.
 
 **Pre-requisitos**: fase 2.
 
-**Entregables**:
-- `api/tree.py` — `GET /api/tree`, `GET /api/tree/{path}` (subárbol).
-- `api/items.py` — `GET /api/items/{id}`, `GET /api/items?geo=...&kind=...&status=...`.
-- `api/songs.py` — `GET /api/songs/{id}` con items relacionados.
-- `api/geo.py` — `GET /api/pueblo/{path}` con items y songs del pueblo.
-- Paginación uniforme (`limit`/`offset` o cursor).
-- Tests: `tests/test_api_read.py` con TestClient.
-- Generación de cliente TypeScript desde OpenAPI (fase 5 lo consumirá).
+**Entregado**:
+- `api/deps.py` — dependencia `get_conn` (sqlite read-only desde `settings.index_path`)
+  + `Pagination(limit, offset)`. Override-able vía `app.dependency_overrides[get_db_path]`.
+  503 si el índice no existe.
+- `api/tree.py` — `GET /api/tree` (árbol completo anidado),
+  `GET /api/geo/{id}?include=children,items,songs`,
+  `GET /api/geo/by-path?path=…`.
+- `api/items.py` — `GET /api/items` con filtros `geo_id`, `song_id`, `kind`,
+  `status`, `platform`, `source_type`, `has_external`, `q` (FTS5),
+  `limit`/`offset`. `GET /api/items/{id}`.
+- `api/songs.py` — `GET /api/songs` filtros `geo_id`, `original_recording_missing`,
+  paginación. `GET /api/songs/{id}` incluye `items`, `relations` y
+  `disco_segments` (bidireccional disco↔canción).
+- `api/discos.py` — `GET /api/discos`, `GET /api/discos/{id}` con tracks +
+  segments anidados, `GET /api/discos/{id}/tracks`,
+  `GET /api/tracks/{id}/segments`.
+- `index/queries.py` extendido: `list_items` (filtros + count), `list_songs`
+  (filtros + paginación opcional), `songs_of_geo`.
+- 23 tests `test_api_read.py` con TestClient + dependency overrides.
+  Reusa fixtures de `test_index_builder.py` (sample_archive, archive_with_disco_and_huerfanas).
 
-**Estimación**: ~1 día.
+**Forma de respuesta paginada** (uniforme):
+```json
+{ "items": [...], "total": N, "limit": L, "offset": O }
+```
+
+**Pendiente para fase 5**: generación de cliente TypeScript desde OpenAPI
+(`pnpm generate-api`). El esquema OpenAPI ya está disponible en `/openapi.json`.
 
 ---
 

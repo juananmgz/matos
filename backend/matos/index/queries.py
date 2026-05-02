@@ -102,6 +102,81 @@ def items_of_song(conn: sqlite3.Connection, song_id: str) -> list[dict[str, Any]
     return [_item_row(r) for r in rows]
 
 
+def list_items(
+    conn: sqlite3.Connection,
+    *,
+    geo_id: str | None = None,
+    song_id: str | None = None,
+    kind: str | None = None,
+    status: str | None = None,
+    platform: str | None = None,
+    source_type: str | None = None,
+    has_external: bool | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> tuple[list[dict[str, Any]], int]:
+    where, params = _item_filters(
+        geo_id=geo_id,
+        song_id=song_id,
+        kind=kind,
+        status=status,
+        platform=platform,
+        source_type=source_type,
+        has_external=has_external,
+    )
+    total = conn.execute(f"SELECT COUNT(*) FROM item{where}", params).fetchone()[0]
+    rows = conn.execute(
+        f"SELECT * FROM item{where} ORDER BY title LIMIT ? OFFSET ?",
+        (*params, limit, offset),
+    ).fetchall()
+    return [_item_row(r) for r in rows], int(total)
+
+
+def _item_filters(
+    *,
+    geo_id: str | None,
+    song_id: str | None,
+    kind: str | None,
+    status: str | None,
+    platform: str | None,
+    source_type: str | None,
+    has_external: bool | None,
+) -> tuple[str, tuple[Any, ...]]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if geo_id is not None:
+        clauses.append("geo_id = ?")
+        params.append(geo_id)
+    if song_id is not None:
+        clauses.append("song_id = ?")
+        params.append(song_id)
+    if kind is not None:
+        clauses.append("kind = ?")
+        params.append(kind)
+    if status is not None:
+        clauses.append("enrichment_status = ?")
+        params.append(status)
+    if platform is not None:
+        clauses.append("platform = ?")
+        params.append(platform)
+    if source_type is not None:
+        clauses.append("source_type = ?")
+        params.append(source_type)
+    if has_external is not None:
+        clauses.append("has_external = ?")
+        params.append(1 if has_external else 0)
+    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    return where, tuple(params)
+
+
+def songs_of_geo(conn: sqlite3.Connection, geo_id: str) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT * FROM song WHERE geo_id = ? ORDER BY title",
+        (geo_id,),
+    ).fetchall()
+    return [_song_row(r) for r in rows]
+
+
 def search_items(conn: sqlite3.Connection, query: str, limit: int = 50) -> list[dict[str, Any]]:
     """FTS5 sobre title/interpretes/tags."""
     rows = conn.execute(
@@ -132,9 +207,31 @@ def get_song(conn: sqlite3.Connection, song_id: str) -> dict[str, Any] | None:
     return song
 
 
-def list_songs(conn: sqlite3.Connection) -> list[dict[str, Any]]:
-    rows = conn.execute("SELECT * FROM song ORDER BY title").fetchall()
-    return [_song_row(r) for r in rows]
+def list_songs(
+    conn: sqlite3.Connection,
+    *,
+    geo_id: str | None = None,
+    original_recording_missing: bool | None = None,
+    limit: int | None = None,
+    offset: int = 0,
+) -> tuple[list[dict[str, Any]], int]:
+    clauses: list[str] = []
+    params: list[Any] = []
+    if geo_id is not None:
+        clauses.append("geo_id = ?")
+        params.append(geo_id)
+    if original_recording_missing is not None:
+        clauses.append("original_recording_missing = ?")
+        params.append(1 if original_recording_missing else 0)
+    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    total = conn.execute(f"SELECT COUNT(*) FROM song{where}", params).fetchone()[0]
+    sql = f"SELECT * FROM song{where} ORDER BY title"
+    if limit is not None:
+        sql += " LIMIT ? OFFSET ?"
+        rows = conn.execute(sql, (*params, limit, offset)).fetchall()
+    else:
+        rows = conn.execute(sql, params).fetchall()
+    return [_song_row(r) for r in rows], int(total)
 
 
 # ─── discos ───────────────────────────────────────────────────────────────
