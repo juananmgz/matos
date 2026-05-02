@@ -137,6 +137,63 @@ def list_songs(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     return [_song_row(r) for r in rows]
 
 
+# ─── discos ───────────────────────────────────────────────────────────────
+
+
+def get_disco(conn: sqlite3.Connection, disco_id: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM disco WHERE id = ?", (disco_id,)).fetchone()
+    if row is None:
+        return None
+    disco = _disco_row(row)
+    disco["tracks"] = tracks_of_disco(conn, disco_id)
+    return disco
+
+
+def list_discos(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute("SELECT * FROM disco ORDER BY artista, año, titulo").fetchall()
+    return [_disco_row(r) for r in rows]
+
+
+def tracks_of_disco(conn: sqlite3.Connection, disco_id: str) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT * FROM disco_track WHERE disco_id = ? ORDER BY track_no",
+        (disco_id,),
+    ).fetchall()
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        d = _track_row(r)
+        d["segments"] = segments_of_track(conn, d["id"])
+        out.append(d)
+    return out
+
+
+def segments_of_track(conn: sqlite3.Connection, track_id: str) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT * FROM track_segment WHERE track_id = ? ORDER BY COALESCE(offset_s, 0)",
+        (track_id,),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def disco_segments_of_song(conn: sqlite3.Connection, song_id: str) -> list[dict[str, Any]]:
+    """Inverso: dada una Song, qué segmentos de qué tracks la referencian.
+
+    Pieza clave de la bidireccionalidad disco ↔ pueblo.
+    """
+    rows = conn.execute(
+        "SELECT ts.id AS segment_id, ts.offset_s, ts.duration_s, ts.label, ts.notes,"
+        "       dt.id AS track_id, dt.track_no, dt.title AS track_title,"
+        "       d.id AS disco_id, d.artista, d.titulo AS disco_titulo, d.año "
+        "FROM track_segment ts "
+        "JOIN disco_track dt ON dt.id = ts.track_id "
+        "JOIN disco d ON d.id = dt.disco_id "
+        "WHERE ts.song_id = ? "
+        "ORDER BY d.año, d.titulo, dt.track_no, COALESCE(ts.offset_s, 0)",
+        (song_id,),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
 # ─── meta ────────────────────────────────────────────────────────────────
 
 
@@ -164,4 +221,20 @@ def _song_row(row: sqlite3.Row) -> dict[str, Any]:
     d = dict(row)
     d["title_variants"] = json.loads(d["title_variants"]) if d.get("title_variants") else []
     d["tags"] = json.loads(d["tags"]) if d.get("tags") else []
+    d["original_recording_missing"] = bool(d.get("original_recording_missing"))
+    return d
+
+
+def _disco_row(row: sqlite3.Row) -> dict[str, Any]:
+    d = dict(row)
+    d["tags"] = json.loads(d["tags"]) if d.get("tags") else []
+    d["raw"] = json.loads(d.pop("raw_json"))
+    d["has_external"] = bool(d.get("has_external"))
+    return d
+
+
+def _track_row(row: sqlite3.Row) -> dict[str, Any]:
+    d = dict(row)
+    d["tags"] = json.loads(d["tags"]) if d.get("tags") else []
+    d["raw"] = json.loads(d.pop("raw_json"))
     return d

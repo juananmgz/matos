@@ -78,5 +78,11 @@ class Song(MatosModel):
 
     relations: list[Relation] = Field(default_factory=list)
 
+    original_recording_missing: bool = False
+    """`True` si la Song existe sólo como referencia desde uno o más discos
+    pero no se ha localizado grabación de campo en el archivo. Útil para
+    distinguir stubs creados desde un `TrackSegment` de canciones con
+    grabaciones propias."""
+
     notes: str | None = None
     tags: list[str] = Field(default_factory=list)

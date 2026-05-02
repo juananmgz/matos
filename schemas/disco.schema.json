@@ -1,0 +1,288 @@
+{
+  "$defs": {
+    "DiscoFormato": {
+      "enum": [
+        "lp",
+        "ep",
+        "single",
+        "cd",
+        "casete",
+        "digital",
+        "otro"
+      ],
+      "title": "DiscoFormato",
+      "type": "string"
+    },
+    "EnrichmentInfo": {
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/EnrichmentStatus",
+          "default": "pending"
+        },
+        "edited_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Edited By"
+        },
+        "edited_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Edited At"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "title": "EnrichmentInfo",
+      "type": "object"
+    },
+    "EnrichmentStatus": {
+      "enum": [
+        "pending",
+        "partial",
+        "complete",
+        "needs_review"
+      ],
+      "title": "EnrichmentStatus",
+      "type": "string"
+    },
+    "ExternalMetadata": {
+      "description": "Caché crudo de la plataforma externa. Opaca, no validada por schema.\n\nSolo se actualiza con `POST /api/items/{id}/refetch`. **Nunca editar a\nmano**. `raw_hash` permite detectar cambios externos vs. la última\nversión vista durante la edición → triggers `needs_review`.",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/ExternalSource"
+        },
+        "fetched_at": {
+          "format": "date-time",
+          "title": "Fetched At",
+          "type": "string"
+        },
+        "url": {
+          "format": "uri",
+          "maxLength": 2083,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "raw": {
+          "additionalProperties": true,
+          "title": "Raw",
+          "type": "object"
+        },
+        "raw_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Raw Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "fetched_at",
+        "url",
+        "raw",
+        "raw_hash"
+      ],
+      "title": "ExternalMetadata",
+      "type": "object"
+    },
+    "ExternalSource": {
+      "description": "De qué API vino la `external_metadata.raw`.",
+      "enum": [
+        "spotify_api",
+        "youtube_oembed",
+        "youtube_data_api",
+        "wikidata",
+        "wikimedia_commons",
+        "other"
+      ],
+      "title": "ExternalSource",
+      "type": "string"
+    },
+    "Rights": {
+      "properties": {
+        "license": {
+          "title": "License",
+          "type": "string"
+        },
+        "holder": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holder"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "license"
+      ],
+      "title": "Rights",
+      "type": "object"
+    }
+  },
+  "description": "Una edición discográfica concreta. Sidecar: `_disco.json`.\n\nIdentidad por UUID. La carpeta puede renombrarse sin romper relaciones.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "artista": {
+      "minLength": 1,
+      "title": "Artista",
+      "type": "string"
+    },
+    "titulo": {
+      "minLength": 1,
+      "title": "Titulo",
+      "type": "string"
+    },
+    "año": {
+      "anyOf": [
+        {
+          "maximum": 2100,
+          "minimum": 1850,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Año"
+    },
+    "sello": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sello"
+    },
+    "catalogo": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Catalogo"
+    },
+    "formato": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DiscoFormato"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "cover_file": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cover File"
+    },
+    "notas": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notas"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Tags",
+      "type": "array"
+    },
+    "rights": {
+      "$ref": "#/$defs/Rights"
+    },
+    "external_metadata": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExternalMetadata"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "enrichment": {
+      "$ref": "#/$defs/EnrichmentInfo"
+    }
+  },
+  "required": [
+    "id",
+    "artista",
+    "titulo",
+    "rights"
+  ],
+  "title": "Disco",
+  "type": "object",
+  "$id": "https://matos.local/schemas/disco.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

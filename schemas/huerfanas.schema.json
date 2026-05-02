@@ -1,0 +1,41 @@
+{
+  "description": "Contenedor de songs/items con origen geográfico parcialmente conocido.\n\nVive en `_huerfanas/_huerfanas.json` dentro de cualquier nivel:\n\n- `archivo/geo/_huerfanas/` — sin CCAA conocida.\n- `archivo/geo/<ccaa>/_huerfanas/` — CCAA conocida, sin provincia.\n- `archivo/geo/<ccaa>/<provincia>/_huerfanas/` — provincia conocida,\n  sin pueblo (y no común a toda la provincia, en cuyo caso iría\n  directamente bajo la provincia con un pueblo virtual).\n\nAcepta `songs/` e `items/` igual que un Pueblo.",
+  "properties": {
+    "id": {
+      "format": "uuid",
+      "title": "Id",
+      "type": "string"
+    },
+    "nombre": {
+      "default": "Huérfanas",
+      "minLength": 1,
+      "title": "Nombre",
+      "type": "string"
+    },
+    "notas": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notas"
+    },
+    "level": {
+      "const": "huerfanas",
+      "default": "huerfanas",
+      "title": "Level",
+      "type": "string"
+    }
+  },
+  "required": [
+    "id"
+  ],
+  "title": "Huerfanas",
+  "type": "object",
+  "$id": "https://matos.local/schemas/huerfanas.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

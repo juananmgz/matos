@@ -27,6 +27,9 @@ from ..models import (
     CCAA,
     SCHEMA_VERSION,
     ArchiveIndex,
+    Disco,
+    DiscoTrack,
+    Huerfanas,
     Item,
     ItemKind,
     Provincia,
@@ -49,9 +52,13 @@ class IndexReport:
     ccaa: int = 0
     provincias: int = 0
     pueblos: int = 0
+    huerfanas: int = 0
     items: int = 0
     songs: int = 0
     relations: int = 0
+    discos: int = 0
+    disco_tracks: int = 0
+    track_segments: int = 0
     errors: list[str] = field(default_factory=list)
 
     @property
@@ -149,9 +156,13 @@ def _write_meta(conn: sqlite3.Connection, report: IndexReport) -> None:
         ("ccaa_count", str(report.ccaa)),
         ("provincias_count", str(report.provincias)),
         ("pueblos_count", str(report.pueblos)),
+        ("huerfanas_count", str(report.huerfanas)),
         ("items_count", str(report.items)),
         ("songs_count", str(report.songs)),
         ("relations_count", str(report.relations)),
+        ("discos_count", str(report.discos)),
+        ("disco_tracks_count", str(report.disco_tracks)),
+        ("track_segments_count", str(report.track_segments)),
     ]
     if report.archive_meta:
         rows.append(("archive_name", report.archive_meta.archive_name or ""))
@@ -168,13 +179,14 @@ def _write_meta(conn: sqlite3.Connection, report: IndexReport) -> None:
 # Pydantic.
 
 
+HUERFANAS_DIR = "_huerfanas"
+
+
 def _walk(
     storage: StorageAdapter,
     report: IndexReport,
     write: sqlite3.Connection | None,
 ) -> None:
-    root = PurePosixPath(".")
-
     # _index.json (opcional, pero recomendado)
     idx_path = PurePosixPath("_index.json")
     if storage.exists(idx_path):
@@ -183,13 +195,39 @@ def _walk(
         except (ValidationError, json.JSONDecodeError) as e:
             report.errors.append(f"_index.json: {e}")
 
-    # CCAA folders
-    for ccaa_dir in storage.list_dir(root):
+    # ── geo/ ────────────────────────────────────────────────────────────────
+    geo_root = PurePosixPath("geo")
+    if storage.exists(geo_root) and storage.is_dir(geo_root):
+        _walk_geo(storage, geo_root, report, write)
+
+    # ── discos/ ─────────────────────────────────────────────────────────────
+    discos_root = PurePosixPath("discos")
+    if storage.exists(discos_root) and storage.is_dir(discos_root):
+        _walk_discos(storage, discos_root, report, write)
+
+
+def _walk_geo(
+    storage: StorageAdapter,
+    geo_root: PurePosixPath,
+    report: IndexReport,
+    write: sqlite3.Connection | None,
+) -> None:
+    # _huerfanas/ a nivel raíz (sin CCAA conocida)
+    root_huerfanas_dir = geo_root / HUERFANAS_DIR
+    if storage.exists(root_huerfanas_dir) and storage.is_dir(root_huerfanas_dir):
+        _ingest_huerfanas(storage, root_huerfanas_dir, parent=None, report=report, write=write)
+
+    for ccaa_dir in storage.list_dir(geo_root):
         if not storage.is_dir(ccaa_dir) or ccaa_dir.name.startswith((".", "_")):
             continue
         ccaa = _ingest_ccaa(storage, ccaa_dir, report, write)
         if ccaa is None:
             continue
+
+        # _huerfanas/ dentro de la CCAA (CCAA conocida, sin provincia)
+        ccaa_huerfanas_dir = ccaa_dir / HUERFANAS_DIR
+        if storage.exists(ccaa_huerfanas_dir) and storage.is_dir(ccaa_huerfanas_dir):
+            _ingest_huerfanas(storage, ccaa_huerfanas_dir, parent=ccaa, report=report, write=write)
 
         for prov_dir in storage.list_dir(ccaa_dir):
             if not storage.is_dir(prov_dir) or prov_dir.name.startswith((".", "_")):
@@ -198,10 +236,33 @@ def _walk(
             if prov is None:
                 continue
 
+            # _huerfanas/ dentro de la provincia (provincia conocida, sin pueblo)
+            prov_huerfanas_dir = prov_dir / HUERFANAS_DIR
+            if storage.exists(prov_huerfanas_dir) and storage.is_dir(prov_huerfanas_dir):
+                _ingest_huerfanas(
+                    storage, prov_huerfanas_dir, parent=prov, report=report, write=write
+                )
+
             for pueblo_dir in storage.list_dir(prov_dir):
                 if not storage.is_dir(pueblo_dir) or pueblo_dir.name.startswith((".", "_")):
                     continue
                 _ingest_pueblo(storage, pueblo_dir, prov, report, write)
+
+
+def _walk_discos(
+    storage: StorageAdapter,
+    discos_root: PurePosixPath,
+    report: IndexReport,
+    write: sqlite3.Connection | None,
+) -> None:
+    # discos/<artista>/<(YYYY) titulo>/...
+    for artista_dir in storage.list_dir(discos_root):
+        if not storage.is_dir(artista_dir) or artista_dir.name.startswith((".", "_")):
+            continue
+        for disco_dir in storage.list_dir(artista_dir):
+            if not storage.is_dir(disco_dir) or disco_dir.name.startswith((".", "_")):
+                continue
+            _ingest_disco(storage, disco_dir, report, write)
 
 
 # ─── Ingesta por nivel ────────────────────────────────────────────────────
@@ -325,8 +386,81 @@ def _ingest_pueblo(
             ),
         )
 
-    # Songs antes que items: item.song_id referencia song(id) y la FK es
-    # validada en cada INSERT.
+    _ingest_songs_and_items(storage, folder, default_geo_id=pueblo.id, report=report, write=write)
+
+
+def _ingest_huerfanas(
+    storage: StorageAdapter,
+    folder: PurePosixPath,
+    parent: CCAA | Provincia | None,
+    report: IndexReport,
+    write: sqlite3.Connection | None,
+) -> None:
+    """Bucket de songs/items con geo parcialmente conocida.
+
+    Acepta `_huerfanas.json` opcional para fijar UUID estable; si falta, se
+    sintetiza un UUID derivado del path (estable entre reindex)."""
+    meta = folder / "_huerfanas.json"
+    if storage.exists(meta):
+        try:
+            huerfanas = Huerfanas.model_validate(_load_json(storage, meta))
+        except (ValidationError, json.JSONDecodeError) as e:
+            report.errors.append(f"{meta}: {e}")
+            return
+    else:
+        # UUID estable derivado del path → reindex idempotente
+        from uuid import NAMESPACE_URL, UUID, uuid5
+
+        synth_id: UUID = uuid5(NAMESPACE_URL, f"matos:huerfanas:{folder}")
+        nombre_default = (
+            f"Huérfanas ({parent.nombre})" if parent is not None else "Huérfanas (sin CCAA)"
+        )
+        huerfanas = Huerfanas(id=synth_id, nombre=nombre_default)
+
+    report.huerfanas += 1
+
+    # path: cadena de slugs hasta este folder, sin el segmento `geo/`.
+    parts: list[str] = []
+    cur = folder
+    while cur.name and cur.name != "geo":
+        parts.insert(0, cur.name)
+        cur = cur.parent
+    path = _path_dotted(parts)
+
+    if write is not None:
+        write.execute(
+            "INSERT INTO geo_unit(id, level, nombre, parent_id, path, slug, codigo, fs_path, extra_json) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                str(huerfanas.id),
+                huerfanas.level.value,
+                huerfanas.nombre,
+                str(parent.id) if parent is not None else None,
+                path,
+                _slug(folder),
+                None,
+                str(folder),
+                json.dumps({"notas": huerfanas.notas}, ensure_ascii=False),
+            ),
+        )
+
+    _ingest_songs_and_items(
+        storage, folder, default_geo_id=huerfanas.id, report=report, write=write
+    )
+
+
+def _ingest_songs_and_items(
+    storage: StorageAdapter,
+    folder: PurePosixPath,
+    default_geo_id,  # UUID
+    report: IndexReport,
+    write: sqlite3.Connection | None,
+) -> None:
+    """Lógica compartida pueblo/huerfanas: indexar `songs/` e `items/`.
+
+    Songs antes que items: `item.song_id` tiene FK contra `song(id)` y la
+    FK se valida en cada INSERT.
+    """
     songs_dir = folder / "songs"
     if storage.exists(songs_dir) and storage.is_dir(songs_dir):
         for child in storage.list_dir(songs_dir):
@@ -337,13 +471,13 @@ def _ingest_pueblo(
     if storage.exists(items_dir) and storage.is_dir(items_dir):
         for child in storage.list_dir(items_dir):
             if child.name.endswith(".meta.json"):
-                _ingest_item(storage, child, pueblo, report, write)
+                _ingest_item_with_default_geo(storage, child, default_geo_id, report, write)
 
 
-def _ingest_item(
+def _ingest_item_with_default_geo(
     storage: StorageAdapter,
     meta_path: PurePosixPath,
-    pueblo: Pueblo,
+    default_geo_id,  # UUID
     report: IndexReport,
     write: sqlite3.Connection | None,
 ) -> None:
@@ -354,11 +488,11 @@ def _ingest_item(
         report.errors.append(f"{meta_path}: {e}")
         return
 
-    # Si geo_id no estaba en el JSON, asumimos el pueblo de la carpeta como
-    # origen geográfico. Mantiene retrocompatibilidad con items sin geo_id
-    # explícito.
+    # Si geo_id no estaba en el JSON, asumimos la geo_unit de la carpeta
+    # (pueblo o huerfanas) como origen geográfico. Mantiene retrocompatibilidad
+    # con items sin geo_id explícito.
     if item.geo_id is None:
-        item = item.model_copy(update={"geo_id": pueblo.id})
+        item = item.model_copy(update={"geo_id": default_geo_id})
 
     if item.kind != ItemKind.url and item.file:
         # Verificar que el binario referenciado existe junto al .meta.json
@@ -418,8 +552,9 @@ def _ingest_song(
     report.relations += len(song.relations)
     if write is not None:
         write.execute(
-            "INSERT INTO song(id, title, geo_id, title_variants, tags, notes, fs_path) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO song(id, title, geo_id, title_variants, tags, notes, "
+            "original_recording_missing, fs_path) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 str(song.id),
                 song.title,
@@ -427,6 +562,7 @@ def _ingest_song(
                 json.dumps(song.title_variants, ensure_ascii=False),
                 json.dumps(song.tags, ensure_ascii=False),
                 song.notes,
+                1 if song.original_recording_missing else 0,
                 str(meta_path),
             ),
         )
@@ -440,5 +576,155 @@ def _ingest_song(
                     str(rel.source),
                     str(rel.target),
                     rel.notes,
+                ),
+            )
+
+
+# ─── Discos ────────────────────────────────────────────────────────────────
+
+
+def _ingest_disco(
+    storage: StorageAdapter,
+    folder: PurePosixPath,
+    report: IndexReport,
+    write: sqlite3.Connection | None,
+) -> None:
+    """Ingesta un disco: `_disco.json` + tracks en `metadatos/*.track.json`.
+
+    Cada track referencia un binario en la carpeta del disco; la existencia
+    del binario se valida igual que en `_ingest_item`.
+    """
+    meta = folder / "_disco.json"
+    if not storage.exists(meta):
+        report.errors.append(f"{folder}: falta _disco.json")
+        return
+    try:
+        disco = Disco.model_validate(_load_json(storage, meta))
+    except (ValidationError, json.JSONDecodeError) as e:
+        report.errors.append(f"{meta}: {e}")
+        return
+
+    if disco.cover_file is not None and not storage.exists(folder / disco.cover_file):
+        report.errors.append(f"{meta}: cover_file {disco.cover_file} no encontrado")
+        return
+
+    report.discos += 1
+    if write is not None:
+        write.execute(
+            "INSERT INTO disco("
+            "  id, artista, titulo, año, sello, catalogo, formato, cover_file,"
+            "  enrichment_status, has_external, notas, tags, raw_json, fs_path"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                str(disco.id),
+                disco.artista,
+                disco.titulo,
+                disco.año,
+                disco.sello,
+                disco.catalogo,
+                disco.formato.value if disco.formato else None,
+                disco.cover_file,
+                disco.enrichment.status.value,
+                1 if disco.external_metadata else 0,
+                disco.notas,
+                json.dumps(disco.tags, ensure_ascii=False),
+                disco.model_dump_json(),
+                str(meta),
+            ),
+        )
+
+    metadatos_dir = folder / "metadatos"
+    if not (storage.exists(metadatos_dir) and storage.is_dir(metadatos_dir)):
+        return
+
+    seen_track_nos: set[int] = set()
+    for child in storage.list_dir(metadatos_dir):
+        if not child.name.endswith(".track.json"):
+            continue
+        _ingest_disco_track(storage, child, disco, folder, seen_track_nos, report, write)
+
+
+def _ingest_disco_track(
+    storage: StorageAdapter,
+    meta_path: PurePosixPath,
+    disco: Disco,
+    disco_folder: PurePosixPath,
+    seen_track_nos: set[int],
+    report: IndexReport,
+    write: sqlite3.Connection | None,
+) -> None:
+    try:
+        track = DiscoTrack.model_validate(_load_json(storage, meta_path))
+    except (ValidationError, json.JSONDecodeError) as e:
+        report.errors.append(f"{meta_path}: {e}")
+        return
+
+    if track.disco_id != disco.id:
+        report.errors.append(f"{meta_path}: disco_id={track.disco_id} no coincide con {disco.id}")
+        return
+
+    if track.track_no in seen_track_nos:
+        report.errors.append(f"{meta_path}: track_no={track.track_no} duplicado en disco")
+        return
+    seen_track_nos.add(track.track_no)
+
+    bin_path = disco_folder / track.file
+    if not storage.exists(bin_path):
+        report.errors.append(f"{meta_path}: fichero {track.file} no encontrado")
+        return
+
+    report.disco_tracks += 1
+    if write is not None:
+        write.execute(
+            "INSERT INTO disco_track("
+            "  id, disco_id, track_no, title, title_external, file, sha256,"
+            "  duration_s, mime_type, notas, tags, raw_json, fs_path"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                str(track.id),
+                str(track.disco_id),
+                track.track_no,
+                track.title,
+                track.title_external,
+                track.file,
+                track.sha256,
+                track.duration_s,
+                track.mime_type,
+                track.notes,
+                json.dumps(track.tags, ensure_ascii=False),
+                track.model_dump_json(),
+                str(meta_path),
+            ),
+        )
+
+    for seg in track.segments:
+        report.track_segments += 1
+        if write is not None:
+            # FK contra song(id) sólo si el song_id está poblado y existe en
+            # la tabla. En modo estricto, el INSERT fallará si referencia un
+            # song inexistente; lo capturamos como error de validación.
+            if seg.song_id is not None:
+                exists = write.execute(
+                    "SELECT 1 FROM song WHERE id = ?", (str(seg.song_id),)
+                ).fetchone()
+                if exists is None:
+                    report.errors.append(
+                        f"{meta_path}: segmento {seg.id} referencia song_id={seg.song_id} "
+                        f"no existente"
+                    )
+                    continue
+            write.execute(
+                "INSERT INTO track_segment("
+                "  id, track_id, song_id, offset_s, duration_s, label, unmatched, notes"
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    str(seg.id),
+                    str(track.id),
+                    str(seg.song_id) if seg.song_id else None,
+                    seg.offset_s,
+                    seg.duration_s,
+                    seg.label,
+                    1 if seg.unmatched else 0,
+                    seg.notes,
                 ),
             )

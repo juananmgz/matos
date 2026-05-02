@@ -16,6 +16,9 @@ from .models import (
     CCAA,
     SCHEMA_VERSION,
     ArchiveIndex,
+    Disco,
+    DiscoTrack,
+    Huerfanas,
     Item,
     Provincia,
     Pueblo,
@@ -63,8 +66,11 @@ def export_schemas(
         "ccaa": CCAA,
         "provincia": Provincia,
         "pueblo": Pueblo,
+        "huerfanas": Huerfanas,
         "item": Item,
         "song": Song,
+        "disco": Disco,
+        "disco_track": DiscoTrack,
         "index": ArchiveIndex,
     }
 
@@ -116,8 +122,8 @@ def init(
         archive.model_dump_json(indent=2, exclude_none=True) + "\n",
     )
 
-    # CCAA de ejemplo: Andalucía. Usuario puede borrarla y crear las suyas.
-    ccaa_dir = "andalucia"
+    # CCAA de ejemplo: Andalucía bajo `geo/`. Usuario puede borrarla y crear las suyas.
+    ccaa_dir = "geo/andalucia"
     if not storage.exists(ccaa_dir):
         ccaa = CCAA(id=uuid4(), nombre="Andalucía", codigo="01")
         storage.write_text(
@@ -125,6 +131,12 @@ def init(
             ccaa.model_dump_json(indent=2, exclude_none=True) + "\n",
         )
         typer.echo(f"  ✓ {path}/{ccaa_dir}/_ccaa.json")
+
+    # Carpeta `discos/` vacía como ancla para el layout (fase 1.5).
+    discos_anchor = "discos/.gitkeep"
+    if not storage.exists(discos_anchor):
+        storage.write_text(discos_anchor, "")
+        typer.echo(f"  ✓ {path}/discos/")
 
     typer.echo(f"  ✓ {path}/_index.json")
     typer.echo(f"\nArchivo inicializado en {path}.")
@@ -185,8 +197,15 @@ def reindex(
 
 def _print_report(report) -> None:  # noqa: ANN001
     """Imprime resumen del IndexReport."""
-    typer.echo(f"  CCAA: {report.ccaa}  Provincias: {report.provincias}  Pueblos: {report.pueblos}")
+    typer.echo(
+        f"  CCAA: {report.ccaa}  Provincias: {report.provincias}  "
+        f"Pueblos: {report.pueblos}  Huérfanas: {report.huerfanas}"
+    )
     typer.echo(f"  Items: {report.items}  Songs: {report.songs}  Relaciones: {report.relations}")
+    typer.echo(
+        f"  Discos: {report.discos}  Tracks: {report.disco_tracks}  "
+        f"Segmentos: {report.track_segments}"
+    )
     if report.errors:
         typer.echo(f"\n✗ {len(report.errors)} errores:")
         for err in report.errors:

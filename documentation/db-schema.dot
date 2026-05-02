@@ -32,7 +32,7 @@ digraph MATOS_db {
       <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
         <TR><TD BGCOLOR="#1f6feb" COLSPAN="2"><FONT COLOR="white"><B>geo_unit</B>  ·  CCAA / Provincia / Pueblo</FONT></TD></TR>
         <TR><TD ALIGN="LEFT" PORT="id"><B>id</B>  PK</TD><TD ALIGN="LEFT">TEXT (UUID)</TD></TR>
-        <TR><TD ALIGN="LEFT">level</TD><TD ALIGN="LEFT">ccaa | provincia | pueblo</TD></TR>
+        <TR><TD ALIGN="LEFT">level</TD><TD ALIGN="LEFT">ccaa | provincia | pueblo | huerfanas</TD></TR>
         <TR><TD ALIGN="LEFT">nombre</TD><TD ALIGN="LEFT">TEXT</TD></TR>
         <TR><TD ALIGN="LEFT" PORT="parent">parent_id  → geo_unit.id</TD><TD ALIGN="LEFT">TEXT</TD></TR>
         <TR><TD ALIGN="LEFT">path  UK</TD><TD ALIGN="LEFT">TEXT (ltree)</TD></TR>
@@ -52,6 +52,7 @@ digraph MATOS_db {
         <TR><TD ALIGN="LEFT">title_variants</TD><TD ALIGN="LEFT">TEXT (JSON [])</TD></TR>
         <TR><TD ALIGN="LEFT">tags</TD><TD ALIGN="LEFT">TEXT (JSON [])</TD></TR>
         <TR><TD ALIGN="LEFT">notes</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">original_recording_missing</TD><TD ALIGN="LEFT">INTEGER (0/1)</TD></TR>
         <TR><TD ALIGN="LEFT">fs_path  UK</TD><TD ALIGN="LEFT">TEXT</TD></TR>
       </TABLE>
     >];
@@ -161,6 +162,70 @@ digraph MATOS_db {
         arrowhead = "none",
         label = "espeja vía triggers",
         color = "#cf222e"
+    ];
+
+    // ─── discos (fase 1.5) ───────────────────────────────────────────
+
+    disco [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#d29922" COLSPAN="2"><FONT COLOR="white"><B>disco</B>  ·  edición discográfica</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="id"><B>id</B>  PK</TD><TD ALIGN="LEFT">TEXT (UUID)</TD></TR>
+        <TR><TD ALIGN="LEFT">artista</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">titulo</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">año</TD><TD ALIGN="LEFT">INTEGER</TD></TR>
+        <TR><TD ALIGN="LEFT">sello / catalogo</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">formato</TD><TD ALIGN="LEFT">lp | ep | single | cd | casete | digital | otro</TD></TR>
+        <TR><TD ALIGN="LEFT">cover_file</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">enrichment_status</TD><TD ALIGN="LEFT">pending | partial | complete | needs_review</TD></TR>
+        <TR><TD ALIGN="LEFT">has_external</TD><TD ALIGN="LEFT">INTEGER (0/1)</TD></TR>
+        <TR><TD ALIGN="LEFT">notas / tags</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">raw_json</TD><TD ALIGN="LEFT">TEXT (Disco Pydantic completo)</TD></TR>
+        <TR><TD ALIGN="LEFT">fs_path  UK</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+      </TABLE>
+    >];
+
+    disco_track [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#d29922" COLSPAN="2"><FONT COLOR="white"><B>disco_track</B>  ·  fichero sonoro del disco</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="id"><B>id</B>  PK</TD><TD ALIGN="LEFT">TEXT (UUID)</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="disco">disco_id  → disco.id</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">track_no</TD><TD ALIGN="LEFT">INTEGER</TD></TR>
+        <TR><TD ALIGN="LEFT">title / title_external</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">file</TD><TD ALIGN="LEFT">TEXT (relativo a la carpeta del disco)</TD></TR>
+        <TR><TD ALIGN="LEFT">sha256</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">duration_s</TD><TD ALIGN="LEFT">INTEGER</TD></TR>
+        <TR><TD ALIGN="LEFT">mime_type</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">notas / tags</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">raw_json</TD><TD ALIGN="LEFT">TEXT (DiscoTrack Pydantic)</TD></TR>
+        <TR><TD ALIGN="LEFT">fs_path  UK</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+      </TABLE>
+    >];
+
+    track_segment [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#d29922" COLSPAN="2"><FONT COLOR="white"><B>track_segment</B>  ·  tramo ↔ canción tradicional</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="id"><B>id</B>  PK</TD><TD ALIGN="LEFT">TEXT (UUID)</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="track">track_id  → disco_track.id</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="song">song_id  → song.id</TD><TD ALIGN="LEFT">TEXT (nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT">offset_s</TD><TD ALIGN="LEFT">INTEGER (nullable = inicio del track)</TD></TR>
+        <TR><TD ALIGN="LEFT">duration_s</TD><TD ALIGN="LEFT">INTEGER (nullable = hasta fin)</TD></TR>
+        <TR><TD ALIGN="LEFT">label</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">unmatched</TD><TD ALIGN="LEFT">INTEGER (0/1; si 1, song_id NULL)</TD></TR>
+        <TR><TD ALIGN="LEFT">notes</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+      </TABLE>
+    >];
+
+    disco_track:disco -> disco:id [
+        label = "disco_id\n(ON DELETE CASCADE)",
+        color = "#d29922"
+    ];
+    track_segment:track -> disco_track:id [
+        label = "track_id\n(ON DELETE CASCADE)",
+        color = "#d29922"
+    ];
+    track_segment:song -> song:id [
+        label = "song_id\n(bidireccional disco↔geo,\nON DELETE SET NULL)",
+        color = "#a371f7"
     ];
 
     // ─── leyenda ─────────────────────────────────────────────────────

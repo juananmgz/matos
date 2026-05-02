@@ -96,6 +96,11 @@
       "title": "Relations",
       "type": "array"
     },
+    "original_recording_missing": {
+      "default": false,
+      "title": "Original Recording Missing",
+      "type": "boolean"
+    },
     "notes": {
       "anyOf": [
         {

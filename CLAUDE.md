@@ -110,10 +110,11 @@ MATOS/
 
 ## Modelo de datos (fase 1 en adelante)
 
-Tres entidades principales:
+Entidades principales:
 
-1. **GeoUnit** (`_ccaa.json` / `_provincia.json` / `_pueblo.json`).
-   Carpeta = jerarquía. Campo `path` derivado del filesystem.
+1. **GeoUnit** (`_ccaa.json` / `_provincia.json` / `_pueblo.json` /
+   `_huerfanas.json`). Carpeta = jerarquía. Campo `path` derivado del
+   filesystem.
 2. **Item** (`<uuid>.meta.json`). Una grabación, partitura, letra, o URL.
    Lleva `kind`, `geo_id`, opcionalmente `song_id`, `context` (intérprete,
    recopilador, fecha, lugar), `source` (fieldwork/release/broadcast/derived),
@@ -121,6 +122,11 @@ Tres entidades principales:
    curacional), `segment` (sub-sección de un media más largo).
 3. **Song** (`<uuid>.song.json`). Entidad lógica que agrupa items y declara
    relaciones (`version_of`, `lyrics_of`, `score_of`).
+   `original_recording_missing=true` indica un stub creado desde un
+   `TrackSegment` sin grabación de campo localizada.
+4. **Disco** (`_disco.json`) + **DiscoTrack** (`*.track.json`) +
+   **TrackSegment** (embebido en track). Edición discográfica con tracks; cada
+   track contiene 1+ segmentos que mapean tramos a `Song`s.
 
 Identidad: UUIDs estables. Renombrar archivos no rompe relaciones.
 
@@ -132,22 +138,62 @@ de arquitectura.
 
 ```
 archivo/
-├── _index.json                          # metadatos del archivo (versión schema)
-├── andalucia/
-│   ├── _ccaa.json
-│   ├── granada/
-│   │   ├── _provincia.json
-│   │   ├── pampaneira/
-│   │   │   ├── _pueblo.json             # comarca, subcomarca, INE, geo
-│   │   │   ├── items/
-│   │   │   │   ├── 7f3a-…-romance.flac
-│   │   │   │   ├── 7f3a-…-romance.meta.json
-│   │   │   │   ├── 9b1c-…-letra.txt
-│   │   │   │   ├── 9b1c-…-letra.meta.json
-│   │   │   │   └── 4d2e-…-yt.url.meta.json
-│   │   │   └── songs/
-│   │   │       └── songs-romance-de-la-loba.song.json
+├── _index.json                              # metadatos del archivo (versión schema)
+├── geo/
+│   ├── _huerfanas/                          # canciones sin CCAA conocida
+│   │   ├── _huerfanas.json                  # opcional (UUID estable)
+│   │   ├── songs/  └─ <uuid>.song.json
+│   │   └── items/  └─ <uuid>.meta.json
+│   ├── andalucia/
+│   │   ├── _ccaa.json
+│   │   ├── _huerfanas/                      # CCAA conocida, sin provincia
+│   │   ├── granada/
+│   │   │   ├── _provincia.json
+│   │   │   ├── _huerfanas/                  # provincia conocida, sin pueblo
+│   │   │   ├── pampaneira/
+│   │   │   │   ├── _pueblo.json             # comarca, subcomarca, INE, geo
+│   │   │   │   ├── items/
+│   │   │   │   │   ├── 7f3a-…-romance.flac
+│   │   │   │   │   ├── 7f3a-…-romance.meta.json
+│   │   │   │   │   ├── 9b1c-…-letra.txt
+│   │   │   │   │   └── 9b1c-…-letra.meta.json
+│   │   │   │   └── songs/
+│   │   │   │       └── <uuid>.song.json
+└── discos/
+    └── <artista-slug>/
+        └── (YYYY) <titulo-slug>/
+            ├── _disco.json                  # metadata disco
+            ├── cover.jpg                    # opcional, ref por cover_file
+            ├── 01-<track>.flac              # binarios al lado del _disco.json
+            ├── 02-<track>.flac
+            └── metadatos/
+                ├── 01-<track>.track.json    # 1 por audio; declara segmentos
+                └── 02-<track>.track.json
 ```
+
+**Huérfanas** (`_huerfanas/`) puede vivir en cualquier nivel. Sirve para
+canciones cuyo origen geográfico se conoce sólo parcialmente: a veces se
+sabe la CCAA pero no la provincia, o la provincia pero no el pueblo (y la
+canción no es común a toda la provincia). El `_huerfanas.json` es opcional:
+si falta, el reindex sintetiza un UUID estable derivado del path.
+
+**Discos** modela ediciones discográficas (LP/CD/EP/single/digital) de
+folklore tradicional o folk moderno. Cada `*.track.json` describe un fichero
+sonoro y declara N **segmentos** que mapean tramos del audio a `Song`s del
+archivo geográfico. Bidireccionalidad disco↔geo:
+
+- Si la canción tradicional ya existe en `geo/<...>/songs/`, el segmento la
+  referencia vía `song_id`. La consulta inversa "qué tracks contienen esta
+  Song" se resuelve por SQL contra `track_segment`.
+- Si NO existe grabación de campo, se crea un `Song` *stub* en el nivel
+  geográfico más fino conocido (pueblo, o `_huerfanas/` del nivel
+  correspondiente) con `original_recording_missing=true`. El segmento apunta
+  a ese stub. El stub no tiene Items propios.
+- Si no se sabe nada del origen, el stub vive en `geo/_huerfanas/`.
+
+`offset_s` y `duration_s` del segmento son ambos opcionales: sin offset,
+empieza al inicio del track; sin duration, llega al final; sin ninguno,
+el track entero es la canción.
 
 ## Modelo de metadatos externos vs. archivo
 
@@ -297,6 +343,7 @@ Cuando se incorporen Postgres+PostGIS y S3:
 |---|---|
 | 0  Scaffold + docker | ✅ completada |
 | 1  Schemas Pydantic | ✅ completada |
+| 1.5 Discos + huérfanas (layout `geo/` + `discos/`) | ✅ completada |
 | 2  Storage + índice SQLite | ✅ completada |
 | 3  API lectura | ⏳ |
 | 4  API streaming | ⏳ |

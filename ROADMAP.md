@@ -21,7 +21,8 @@ fase a fase con `make test` verde y commit nombrado `feat: phase N — <título>
 |---|---|---|
 | 0  | Scaffold + dockerización | ✅ |
 | 1  | Schemas Pydantic + JSON Schema export | ✅ |
-| 2  | Storage local + índice SQLite | ⏳ |
+| 1.5| Discos + huérfanas (layout `geo/` + `discos/`) | ✅ |
+| 2  | Storage local + índice SQLite | ✅ |
 | 3  | API lectura (tree, items, songs) | ⏳ |
 | 4  | API streaming + URL resolution | ⏳ |
 | 5  | Frontend navegación jerárquica | ⏳ |
@@ -97,6 +98,51 @@ make logs s=backend
 - **`Segment` permite multi-canción en un mismo media**: ítems hermanos con la misma URL y distinto `offset_s`/`duration_s` para medleys o álbum-tracks.
 - **`geo_id` del item = origen de la canción**, no ubicación del artista (clave para el caso Ringorrango).
 - **Identidad por UUID v4 estable**: renombrar ficheros no rompe relaciones.
+
+---
+
+## Fase 1.5 ✅ — Discos + huérfanas
+
+**Objetivo**: ampliar el modelo conceptual con discos (LP/CD/EP/single/digital)
+y con un mecanismo de geo parcial (huérfanas), permitiendo bidireccionalidad
+entre tramos de tracks de un disco y canciones tradicionales por pueblo.
+
+**Reorganización del layout**: `archivo/<ccaa>/...` → `archivo/geo/<ccaa>/...`.
+Nueva carpeta hermana `archivo/discos/<artista>/(YYYY) titulo/`.
+
+**Entregado**:
+- `models/disco.py`: `Disco`, `DiscoFormato`, `DiscoTrack`, `TrackSegment` con
+  `offset_s`/`duration_s` opcionales (track entero = segmento sin offsets).
+- `models/geo.py`: nueva `Huerfanas` (level `huerfanas`); válido a nivel raíz,
+  CCAA o provincia.
+- `models/song.py`: campo `original_recording_missing: bool` para stubs creados
+  desde un `TrackSegment` sin grabación de campo.
+- `index/schema.sql`: tablas `disco`, `disco_track`, `track_segment`; columna
+  `original_recording_missing` en `song`; level enum extendido en `geo_unit`.
+- `index/builder.py`: walker reescrito sobre `archivo/geo/` + `archivo/discos/`.
+  Soporta `_huerfanas/` en cualquier nivel (UUID estable derivado del path si
+  falta `_huerfanas.json`). Validación FK explícita de `track_segment.song_id`.
+- `index/queries.py`: `get_disco`, `list_discos`, `tracks_of_disco`,
+  `segments_of_track`, `disco_segments_of_song` (lookup inverso).
+- `cli.py`: `init` crea `geo/andalucia/` y `discos/.gitkeep`. `export-schemas`
+  incluye `huerfanas`, `disco`, `disco_track`.
+- 8 tests nuevos cubriendo: huérfanas en provincia y raíz; ingest de disco con
+  3 segmentos; lookup inverso `disco_segments_of_song`; segmento huérfano con
+  `unmatched=true`; errores por song_id inexistente y binario faltante.
+
+**Bidireccionalidad**:
+- Lado disco (fuente de verdad): `*.track.json` declara segmentos con
+  `song_id` opcional + flag `unmatched: bool`.
+- Lado geo: si la canción no existe, se crea `Song` *stub* en el nivel más
+  fino conocido (pueblo / `_huerfanas` de provincia / `_huerfanas` de CCAA /
+  `_huerfanas` raíz) con `original_recording_missing=true`.
+- Consulta inversa por SQL: `track_segment` indexada por `song_id`.
+
+**Pendiente para fases posteriores**:
+- CLI `make new-disco`, `make import-disco`, `make new-segment` (fase 16
+  amplía el alcance de utilidades).
+- Editor visual con waveform + handles arrastrables para mapear segmento↔Song
+  (fase 9 + fase 12 — ver memoria `project_disco_segment_editor`).
 
 ---
 

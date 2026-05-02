@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from .common import SCHEMA_VERSION, MatosModel
+from .disco import Disco, DiscoFormato, DiscoTrack, TrackSegment
 from .geo import (
     CCAA,
     Centroid,
     ComarcaInfo,
     ComarcaTipo,
     GeoLevel,
+    Huerfanas,
     Provincia,
     Pueblo,
 )
@@ -42,6 +44,7 @@ __all__ = [
     "ComarcaInfo",
     "ComarcaTipo",
     "GeoLevel",
+    "Huerfanas",
     "Provincia",
     "Pueblo",
     # item
@@ -64,6 +67,11 @@ __all__ = [
     "Relation",
     "RelationType",
     "Song",
+    # disco
+    "Disco",
+    "DiscoFormato",
+    "DiscoTrack",
+    "TrackSegment",
     # index
     "ArchiveIndex",
 ]
