@@ -346,7 +346,7 @@ Cuando se incorporen Postgres+PostGIS y S3:
 | 1.5 Discos + huérfanas (layout `geo/` + `discos/`) | ✅ completada |
 | 2  Storage + índice SQLite | ✅ completada |
 | 3  API lectura | ✅ completada |
-| 4  API streaming | ⏳ |
+| 4  API streaming | ✅ completada |
 | 5  Frontend navegación | ⏳ |
 | 6  Player + Media Session | ⏳ |
 | 7  Vista Song | ⏳ |

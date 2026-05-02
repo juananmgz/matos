@@ -127,7 +127,7 @@ VSCode/Cursor: "Reopen in Container" abre el editor dentro del contenedor (`.dev
 | 1.5 | Discos + huérfanas (layout `geo/` + `discos/`) | ✅ |
 | 2 | Storage local + índice SQLite | ✅ |
 | 3 | API lectura (tree, items, songs, discos) | ✅ |
-| 4 | API streaming + URL resolution | ⏳ |
+| 4 | API streaming + URL resolution | ✅ |
 | 5 | Frontend navegación jerárquica | ⏳ |
 | 6 | Player + Media Session API | ⏳ |
 | 7 | Vista Song | ⏳ |

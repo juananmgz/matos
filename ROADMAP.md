@@ -24,7 +24,7 @@ fase a fase con `make test` verde y commit nombrado `feat: phase N — <título>
 | 1.5| Discos + huérfanas (layout `geo/` + `discos/`) | ✅ |
 | 2  | Storage local + índice SQLite | ✅ |
 | 3  | API lectura (tree, items, songs) | ✅ |
-| 4  | API streaming + URL resolution | ⏳ |
+| 4  | API streaming + URL resolution | ✅ |
 | 5  | Frontend navegación jerárquica | ⏳ |
 | 6  | Player + Media Session API | ⏳ |
 | 7  | Vista Song (versiones, letras, partituras) | ⏳ |
@@ -222,19 +222,33 @@ Nueva carpeta hermana `archivo/discos/<artista>/(YYYY) titulo/`.
 
 ---
 
-## Fase 4 ⏳ — API streaming + URL resolution
+## Fase 4 ✅ — API streaming + URL resolution
 
 **Objetivo**: servir media local con HTTP Range, devolver embed para URLs externas.
 
 **Pre-requisitos**: fase 3.
 
-**Entregables**:
-- `GET /api/media/{item_id}` — para items con fichero local; HTTP Range nativo de FastAPI/Starlette para audio scrubbing.
-- `GET /api/media/{item_id}/embed` — para items URL: detecta plataforma vía regex sobre `item.url`, devuelve `{type, embed_url, thumbnail, ...}` para el iframe.
-- `api/media.py` con `EmbedResolver` extensible.
-- Tests con grabación de audio mínima en fixture.
-
-**Estimación**: ~0.5 días.
+**Entregado**:
+- `api/media.py`:
+  - `GET /api/media/{item_id}` — sirve binario local con `StreamingResponse`
+    en chunks de 64 KiB. Soporta `Range: bytes=START-`, `START-END` y suffix
+    `-N`. Devuelve 200 con `Accept-Ranges: bytes` o 206 con `Content-Range`.
+    416 si el rango está fuera del fichero.
+  - `GET /api/media/{item_id}/embed` — `resolve_embed()` con regex por
+    plataforma (Spotify track/album/playlist con o sin locale, YouTube
+    watch/youtu.be/embed). Devuelve `{type, platform, embed_url,
+    external_id, original_url, segment?}`. URLs no reconocidas → `type=link`.
+    400 si el item es local; 400 si el item URL no tiene URL.
+  - `GET /api/media/disco-track/{track_id}` — análogo al item local pero
+    resuelve binario relativo al disco (`<fs_path>.parent.parent / file`).
+- `api/deps.py`: `get_archive_root()` override-able en tests.
+- Builder: `_ingest_song` ahora hereda `geo_id` de la carpeta cuando no se
+  declara explícitamente (consistente con items; necesario para
+  `songs_of_geo` en /api/geo/{id}).
+- 24 tests `test_api_media.py` (resolver unit + Range completo + endpoints).
+- `tests/conftest.py` reexporta fixtures comunes.
+- `pyproject.toml`: `flake8-bugbear.extend-immutable-calls` para que ruff
+  acepte `Depends/Query/Header/Path/Body` en defaults.
 
 ---
 

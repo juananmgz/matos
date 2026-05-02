@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from . import discos, items, songs, tree
+from . import discos, items, media, songs, tree
 
-__all__ = ["discos", "items", "songs", "tree"]
+__all__ = ["discos", "items", "media", "songs", "tree"]

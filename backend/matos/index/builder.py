@@ -465,7 +465,7 @@ def _ingest_songs_and_items(
     if storage.exists(songs_dir) and storage.is_dir(songs_dir):
         for child in storage.list_dir(songs_dir):
             if child.name.endswith(".song.json"):
-                _ingest_song(storage, child, report, write)
+                _ingest_song(storage, child, default_geo_id, report, write)
 
     items_dir = folder / "items"
     if storage.exists(items_dir) and storage.is_dir(items_dir):
@@ -539,6 +539,7 @@ def _ingest_item_with_default_geo(
 def _ingest_song(
     storage: StorageAdapter,
     meta_path: PurePosixPath,
+    default_geo_id,  # UUID
     report: IndexReport,
     write: sqlite3.Connection | None,
 ) -> None:
@@ -547,6 +548,11 @@ def _ingest_song(
     except (ValidationError, json.JSONDecodeError) as e:
         report.errors.append(f"{meta_path}: {e}")
         return
+
+    # Songs en geo/<...>/songs/ heredan el geo_id de la carpeta cuando no
+    # lo declaran explícitamente. Coherente con el tratamiento de items.
+    if song.geo_id is None:
+        song = song.model_copy(update={"geo_id": default_geo_id})
 
     report.songs += 1
     report.relations += len(song.relations)

@@ -17,11 +17,8 @@ from matos.index import build_index
 from matos.main import app
 from matos.storage import LocalStorage
 
-# Reusa fixtures
-from .test_index_builder import (  # noqa: F401
-    archive_with_disco_and_huerfanas,
-    sample_archive,
-)
+# Fixtures `archive_with_disco_and_huerfanas` y `sample_archive` provienen
+# de `conftest.py` (definidos en `test_index_builder.py`).
 
 
 @pytest.fixture
