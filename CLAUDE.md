@@ -286,8 +286,14 @@ Al terminar cualquier fase (o cambio significativo):
 1. **Tests verdes**: `make test` pasa sin errores.
 2. **Commit en la rama de trabajo** con mensaje `feat: phase N — <título>`.
 3. **Actualizar `README.md`**: estado de fases, comandos nuevos, estructura si cambia.
-4. **Si cambia el esquema SQLite** (`index/schema.sql`): actualizar `documentation/db-schema.dot`
-   y regenerar el PNG con `make db-diagram`. Commitear ambos ficheros.
+4. **Si cambia el esquema SQLite** (`index/schema.sql`):
+   - Actualizar `documentation/db-schema.dot` con las tablas/columnas nuevas.
+   - Regenerar el PNG con `make db-diagram` y **sustituir** `documentation/db-schema.png`
+     (no añadir uno nuevo: el path es estable y referenciado desde docs y README).
+   - Actualizar la documentación MkDocs en `documentation/docs/arquitectura/base-de-datos.md`
+     (descripción de las tablas, FKs, índices). Si añades una tabla nueva, añadirla
+     a la sección correspondiente, no como apéndice.
+   - Commitear los tres cambios juntos: `.dot`, `.png` y el `.md` de mkdocs.
 5. **Merge a `main`** desde el worktree principal:
    ```bash
    git -C /Users/juananmgz/Desktop/MNEMOSINE/MATOS merge --no-ff <rama> -m "Merge branch '<rama>'"
