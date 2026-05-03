@@ -128,12 +128,36 @@ CREATE TRIGGER IF NOT EXISTS item_au AFTER UPDATE ON item BEGIN
     VALUES (new.rowid, new.title, new.interpretes, new.tags);
 END;
 
+-- ─── artist ──────────────────────────────────────────────────────────────
+-- Artista (solista o grupo). Sidecar `archivo/artists/<slug>/_artist.json`.
+-- Ingestado ANTES que `disco` para que `disco.artist_id` pueda resolver FK.
+
+CREATE TABLE IF NOT EXISTS artist (
+    id                  TEXT PRIMARY KEY,             -- UUID
+    nombre              TEXT NOT NULL,
+    slug                TEXT NOT NULL UNIQUE,         -- ASCII kebab-case; coincide con la carpeta
+    type                TEXT CHECK (type IN ('solo','grupo','otro')),
+    geo_id              TEXT REFERENCES geo_unit(id) ON DELETE SET NULL,
+    aliases             TEXT NOT NULL DEFAULT '[]',   -- JSON array (denorm para FTS)
+    bio                 TEXT,
+    enrichment_status   TEXT NOT NULL CHECK (enrichment_status IN ('pending','partial','complete','needs_review')),
+    has_external        INTEGER NOT NULL DEFAULT 0,
+    notas               TEXT,
+    tags                TEXT NOT NULL DEFAULT '[]',   -- JSON array
+    raw_json            TEXT NOT NULL,                -- volcado completo del Artist Pydantic
+    fs_path             TEXT NOT NULL UNIQUE          -- ruta del _artist.json
+);
+
+CREATE INDEX IF NOT EXISTS idx_artist_geo     ON artist(geo_id);
+CREATE INDEX IF NOT EXISTS idx_artist_nombre  ON artist(nombre);
+
 -- ─── disco ───────────────────────────────────────────────────────────────
 -- Edición discográfica (LP/CD/EP/single/digital). Vive bajo `archivo/discos/`.
 
 CREATE TABLE IF NOT EXISTS disco (
     id                  TEXT PRIMARY KEY,             -- UUID
-    artista             TEXT NOT NULL,
+    artist_id           TEXT REFERENCES artist(id) ON DELETE SET NULL,
+    artista             TEXT NOT NULL,                -- denorm; permite discos sin _artist.json
     titulo              TEXT NOT NULL,
     año                 INTEGER,
     sello               TEXT,
@@ -148,8 +172,9 @@ CREATE TABLE IF NOT EXISTS disco (
     fs_path             TEXT NOT NULL UNIQUE          -- ruta del _disco.json
 );
 
-CREATE INDEX IF NOT EXISTS idx_disco_artista  ON disco(artista);
-CREATE INDEX IF NOT EXISTS idx_disco_año      ON disco(año);
+CREATE INDEX IF NOT EXISTS idx_disco_artist_id  ON disco(artist_id);
+CREATE INDEX IF NOT EXISTS idx_disco_artista    ON disco(artista);
+CREATE INDEX IF NOT EXISTS idx_disco_año        ON disco(año);
 
 CREATE TABLE IF NOT EXISTS disco_track (
     id              TEXT PRIMARY KEY,                 -- UUID

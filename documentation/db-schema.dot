@@ -166,11 +166,30 @@ digraph MATOS_db {
 
     // ─── discos (fase 1.5) ───────────────────────────────────────────
 
+    artist [label=<
+      <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
+        <TR><TD BGCOLOR="#bf3989" COLSPAN="2"><FONT COLOR="white"><B>artist</B>  ·  artista (solista o grupo)</FONT></TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="id"><B>id</B>  PK</TD><TD ALIGN="LEFT">TEXT (UUID)</TD></TR>
+        <TR><TD ALIGN="LEFT">nombre</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">slug  UK</TD><TD ALIGN="LEFT">TEXT (kebab-case = carpeta)</TD></TR>
+        <TR><TD ALIGN="LEFT">type</TD><TD ALIGN="LEFT">solo | grupo | otro</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="geo">geo_id  → geo_unit.id</TD><TD ALIGN="LEFT">TEXT (nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT">aliases</TD><TD ALIGN="LEFT">TEXT (JSON [])</TD></TR>
+        <TR><TD ALIGN="LEFT">bio / notas</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT">enrichment_status</TD><TD ALIGN="LEFT">pending | partial | complete | needs_review</TD></TR>
+        <TR><TD ALIGN="LEFT">has_external</TD><TD ALIGN="LEFT">INTEGER (0/1)</TD></TR>
+        <TR><TD ALIGN="LEFT">tags</TD><TD ALIGN="LEFT">TEXT (JSON [])</TD></TR>
+        <TR><TD ALIGN="LEFT">raw_json</TD><TD ALIGN="LEFT">TEXT (Artist Pydantic)</TD></TR>
+        <TR><TD ALIGN="LEFT">fs_path  UK</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+      </TABLE>
+    >];
+
     disco [label=<
       <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6" BGCOLOR="white">
         <TR><TD BGCOLOR="#d29922" COLSPAN="2"><FONT COLOR="white"><B>disco</B>  ·  edición discográfica</FONT></TD></TR>
         <TR><TD ALIGN="LEFT" PORT="id"><B>id</B>  PK</TD><TD ALIGN="LEFT">TEXT (UUID)</TD></TR>
-        <TR><TD ALIGN="LEFT">artista</TD><TD ALIGN="LEFT">TEXT</TD></TR>
+        <TR><TD ALIGN="LEFT" PORT="artist">artist_id  → artist.id</TD><TD ALIGN="LEFT">TEXT (nullable)</TD></TR>
+        <TR><TD ALIGN="LEFT">artista</TD><TD ALIGN="LEFT">TEXT (denorm)</TD></TR>
         <TR><TD ALIGN="LEFT">titulo</TD><TD ALIGN="LEFT">TEXT</TD></TR>
         <TR><TD ALIGN="LEFT">año</TD><TD ALIGN="LEFT">INTEGER</TD></TR>
         <TR><TD ALIGN="LEFT">sello / catalogo</TD><TD ALIGN="LEFT">TEXT</TD></TR>
@@ -215,6 +234,14 @@ digraph MATOS_db {
       </TABLE>
     >];
 
+    artist:geo -> geo_unit:id [
+        label = "geo_id",
+        color = "#1f6feb"
+    ];
+    disco:artist -> artist:id [
+        label = "artist_id\n(ON DELETE SET NULL)",
+        color = "#bf3989"
+    ];
     disco_track:disco -> disco:id [
         label = "disco_id\n(ON DELETE CASCADE)",
         color = "#d29922"

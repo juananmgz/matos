@@ -56,7 +56,16 @@ class Disco(MatosModel):
     """
 
     id: UUID
+    artist_id: UUID | None = None
+    """FK a `artist(id)`. Si está poblada y existe en `archivo/artists/`,
+    se usa para joins canónicos. Si es `None`, el reindex intenta resolverla
+    por slug de carpeta (`discos/<slug>/...` → `artists/<slug>/`)."""
+
     artista: str = Field(min_length=1)
+    """Nombre del artista tal y como debe mostrarse en este disco. Se
+    mantiene como denormalización (el archivo puede no tener todavía un
+    `_artist.json` para todos los artistas)."""
+
     titulo: str = Field(min_length=1)
     año: int | None = Field(default=None, ge=1850, le=2100)
     sello: str | None = None

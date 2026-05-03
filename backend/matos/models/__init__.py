@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .artist import Artist, ArtistType
 from .common import SCHEMA_VERSION, MatosModel
 from .disco import Disco, DiscoFormato, DiscoTrack, TrackSegment
 from .geo import (
@@ -38,6 +39,9 @@ __all__ = [
     # common
     "SCHEMA_VERSION",
     "MatosModel",
+    # artist
+    "Artist",
+    "ArtistType",
     # geo
     "CCAA",
     "Centroid",

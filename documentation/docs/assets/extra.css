@@ -3,6 +3,79 @@
   color: #1a7f37;
 }
 
+/* ─── Tablas de endpoints API ────────────────────────────────────────────────
+ * Las tablas envueltas en `<div class="api-endpoints" markdown>` reciben:
+ *   - fondo pastel por fila según el método HTTP de la primera columna
+ *     (GET=púrpura, POST=verde, PUT/PATCH=amarillo, DELETE=rojo);
+ *   - chip coloreado en la celda del método (saturado, texto blanco).
+ *
+ * El fondo se aplica vía `tr:has(.api-method.<verbo>)`. Soportado por todos
+ * los navegadores evergreen (>=2023). Si en algún día se rompe, basta con
+ * mover el color al `td:first-child` de cada fila.
+ */
+
+.md-typeset .api-endpoints table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.md-typeset .api-endpoints tbody tr td {
+  border-top-width: 1px;
+}
+
+.md-typeset .api-endpoints tbody tr:has(.api-method.get) td {
+  background-color: #f5edff;
+}
+.md-typeset .api-endpoints tbody tr:has(.api-method.post) td {
+  background-color: #e3f7e7;
+}
+.md-typeset
+  .api-endpoints
+  tbody
+  tr:has(.api-method.put, .api-method.patch)
+  td {
+  background-color: #fdf6cf;
+}
+.md-typeset .api-endpoints tbody tr:has(.api-method.delete) td {
+  background-color: #fde2e2;
+}
+
+/* En modo oscuro mantenemos el fondo pastel pero forzamos texto oscuro
+ * dentro de la fila para que el contraste sea legible. */
+[data-md-color-scheme="slate"] .md-typeset .api-endpoints tbody tr td,
+[data-md-color-scheme="slate"] .md-typeset .api-endpoints tbody tr td code,
+[data-md-color-scheme="slate"] .md-typeset .api-endpoints tbody tr td a {
+  color: #1f2328;
+}
+
+.md-typeset .api-method {
+  display: inline-block;
+  min-width: 4.2em;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-family:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-align: center;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+.md-typeset .api-method.get {
+  background-color: #a855f7;
+}
+.md-typeset .api-method.post {
+  background-color: #22c55e;
+}
+.md-typeset .api-method.put,
+.md-typeset .api-method.patch {
+  background-color: #eab308;
+}
+.md-typeset .api-method.delete {
+  background-color: #ef4444;
+}
+
 /* Cards en la home con un poco más de aire. */
 .md-typeset .grid.cards > ul > li {
   padding: 1.2rem;

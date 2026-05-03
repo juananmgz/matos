@@ -75,6 +75,32 @@ Aristas dirigidas dentro de un Song. Tipos:
     Razón: SQLite no soporta `ON DELETE CASCADE` con multi-source FK.
     La integridad la garantiza el rebuild atómico desde JSON.
 
+### `artist`
+
+Artista (solista o grupo) referenciable desde discos. Sidecar
+`archivo/artists/<slug>/_artist.json`. Ingestado **antes** que `disco`
+para que la FK `disco.artist_id` pueda resolverse.
+
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | TEXT (UUID) | PK |
+| `nombre` | TEXT | Nombre legible |
+| `slug` | TEXT UK | Kebab-case ASCII; coincide con la carpeta y con `discos/<slug>/...` |
+| `type` | TEXT | `solo` \| `grupo` \| `otro` (nullable) |
+| `geo_id` | TEXT FK | `→ geo_unit.id` (origen del artista) |
+| `aliases` | TEXT | JSON array, denorm para FTS |
+| `bio` | TEXT | |
+| `enrichment_status` | TEXT | `pending` \| `partial` \| `complete` \| `needs_review` |
+| `has_external` | INTEGER (0/1) | |
+| `tags` | TEXT | JSON array |
+| `raw_json` | TEXT | Volcado completo del `Artist` Pydantic |
+| `fs_path` | TEXT UK | Ruta del `_artist.json` |
+
+!!! note "Resolución de `disco.artist_id`"
+    1. Si el JSON del disco declara `artist_id`, se valida que exista.
+    2. Si no, se intenta resolver por slug de carpeta padre (`discos/<slug>/...` → `artists/<slug>/`).
+    3. Si nada encaja, queda NULL y el disco sigue siendo válido vía el campo `artista` denormalizado.
+
 ### `disco`
 
 Edición discográfica (LP/CD/EP/single/digital) de folklore o folk moderno.
@@ -82,7 +108,8 @@ Edición discográfica (LP/CD/EP/single/digital) de folklore o folk moderno.
 | Campo | Tipo | Notas |
 |---|---|---|
 | `id` | TEXT (UUID) | PK |
-| `artista` | TEXT | |
+| `artist_id` | TEXT FK | `→ artist.id` ON DELETE SET NULL (nullable) |
+| `artista` | TEXT | Denormalización: nombre del artista para mostrar |
 | `titulo` | TEXT | |
 | `año` | INTEGER | |
 | `sello` | TEXT | |

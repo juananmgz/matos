@@ -52,19 +52,38 @@ sin dependencias pesadas (sin Postgres, sin S3, sin auth multiusuario).
 ```text
 archivo/
 ├── _index.json                          # metadatos del archivo (schema_version)
-├── andalucia/
-│   ├── _ccaa.json
-│   ├── granada/
-│   │   ├── _provincia.json
-│   │   ├── pampaneira/
-│   │   │   ├── _pueblo.json             # comarca, INE, geo
-│   │   │   ├── items/
-│   │   │   │   ├── 7f3a-…-romance.flac
-│   │   │   │   ├── 7f3a-…-romance.meta.json
-│   │   │   │   └── 4d2e-…-yt.url.meta.json
-│   │   │   └── songs/
-│   │   │       └── songs-romance-de-la-loba.song.json
+├── geo/
+│   ├── _huerfanas/                      # canciones sin CCAA conocida
+│   ├── andalucia/
+│   │   ├── _ccaa.json
+│   │   ├── _huerfanas/                  # CCAA conocida, sin provincia
+│   │   ├── granada/
+│   │   │   ├── _provincia.json
+│   │   │   ├── _huerfanas/              # provincia conocida, sin pueblo
+│   │   │   └── pampaneira/
+│   │   │       ├── _pueblo.json         # comarca, INE, geo
+│   │   │       ├── items/
+│   │   │       │   ├── 7f3a-…-romance.flac
+│   │   │       │   ├── 7f3a-…-romance.meta.json
+│   │   │       │   └── 4d2e-…-yt.url.meta.json
+│   │   │       └── songs/
+│   │   │           └── <uuid>.song.json
+├── artists/
+│   └── ringorrango/
+│       └── _artist.json                 # artista (solista o grupo)
+└── discos/
+    └── ringorrango/
+        └── (2009) Vente conmigo/
+            ├── _disco.json              # FK opcional → artists/ringorrango/
+            ├── 01-romance.flac
+            └── metadatos/
+                └── 01-romance.track.json
 ```
+
+!!! tip "Resolución artista ↔ disco"
+    El slug de la carpeta de artista (`artists/<slug>/`) coincide con el
+    de la carpeta del disco (`discos/<slug>/...`). El reindex resuelve
+    `disco.artist_id` por convención cuando no está declarado en el JSON.
 
 ## Próximos pasos
 
