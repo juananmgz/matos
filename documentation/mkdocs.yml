@@ -1,0 +1,115 @@
+site_name: MATOS
+site_description: Documentación interna del archivo etnomusicológico MNEMOSINE — MATOS.
+site_author: Juan Antonio Martín
+docs_dir: docs
+site_dir: site
+use_directory_urls: true
+
+theme:
+  name: material
+  language: es
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/git-alt
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - navigation.tracking
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+
+extra_css:
+  - assets/extra.css
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.keys
+  - pymdownx.smartsymbols
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search:
+      lang:
+        - es
+        - en
+  - tags
+
+nav:
+  - Inicio: index.md
+  - Arquitectura:
+    - arquitectura/index.md
+    - Base de datos: arquitectura/base-de-datos.md
+    - Modelo de metadatos: arquitectura/modelo-metadatos.md
+  - API:
+    - api/index.md
+  - Casos de uso:
+    - casos-de-uso/index.md
+    - "Ringorrango — J#4": casos-de-uso/ringorrango.md
+  - Guías:
+    - guias/desarrollo.md
+    - guias/comandos.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/juananmgz/matos
+  generator: false
+
+copyright: MATOS — archivo etnomusicológico MNEMOSINE

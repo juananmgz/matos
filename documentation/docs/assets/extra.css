@@ -1,0 +1,81 @@
+/* Marca de check verde para los iconos OK en tablas. */
+.md-typeset .ok {
+  color: #1a7f37;
+}
+
+/* Cards en la home con un poco más de aire. */
+.md-typeset .grid.cards > ul > li {
+  padding: 1.2rem;
+}
+
+/* ─── Diagramas Mermaid ──────────────────────────────────────────────────────
+ * Material for MkDocs define variables CSS para Mermaid que cambian con el
+ * tema. En modo slate (oscuro) ponen el texto de los nodos casi blanco, lo
+ * que se vuelve ilegible sobre los `fill` pastel de los .md.
+ *
+ * Forzamos los diagramas a renderizarse SIEMPRE como en modo claro (lienzo
+ * blanco, texto oscuro), sin importar el tema del sitio. Aplica también
+ * cuando Material está en `slate` gracias al selector `:where(...)` que
+ * iguala precedencia sin escalar especificidad.
+ */
+
+:root,
+[data-md-color-scheme="default"],
+[data-md-color-scheme="slate"] {
+  --md-mermaid-node-bg-color: #f8f9fa;
+  --md-mermaid-node-fg-color: #212529;
+  --md-mermaid-edge-color: #495057;
+  --md-mermaid-label-bg-color: #ffffff;
+  --md-mermaid-label-fg-color: #212529;
+}
+
+.mermaid {
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+/* Texto en nodos — Mermaid moderno usa <foreignObject><div> con HTML */
+.mermaid .nodeLabel,
+.mermaid .nodeLabel p,
+.mermaid .nodeLabel span,
+.mermaid foreignObject div,
+.mermaid foreignObject span,
+.mermaid foreignObject p {
+  color: #212529 !important;
+  background-color: transparent !important;
+}
+
+/* Texto SVG plano (Mermaid antiguo o nodos sin foreignObject) */
+.mermaid text,
+.mermaid tspan,
+.mermaid .label text {
+  fill: #212529 !important;
+  color: #212529 !important;
+}
+
+/* Etiquetas de aristas (texto sobre las flechas) */
+.mermaid .edgeLabel,
+.mermaid .edgeLabel p,
+.mermaid .edgeLabel rect {
+  color: #212529 !important;
+  background-color: #ffffff !important;
+  fill: #ffffff !important;
+}
+.mermaid .edgeLabel text,
+.mermaid .edgeLabel tspan {
+  fill: #212529 !important;
+}
+
+/* Aristas y flechas: visibles sobre lienzo blanco */
+.mermaid .flowchart-link,
+.mermaid path.path,
+.mermaid .edge-thickness-normal,
+.mermaid .edgePath path {
+  stroke: #495057 !important;
+}
+.mermaid .marker,
+.mermaid marker path {
+  fill: #495057 !important;
+  stroke: #495057 !important;
+}

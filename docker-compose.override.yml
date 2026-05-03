@@ -37,3 +37,12 @@ services:
   caddy:
     environment:
       FRONTEND_UPSTREAM: frontend:5173
+
+  docs:
+    image: squidfunk/mkdocs-material:latest
+    restart: unless-stopped
+    volumes:
+      - ./documentation:/docs:cached
+    ports:
+      - "8001:8000"
+    networks: [matos_net]
