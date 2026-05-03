@@ -26,8 +26,16 @@
 .md-typeset .api-endpoints tbody tr:has(.api-method.get) td {
   background-color: #f5edff;
 }
+.md-typeset .api-endpoints tbody tr:has(.api-method.get) td code {
+  background-color: #dfc8ff !important;
+  color: #1f2328 !important;
+}
 .md-typeset .api-endpoints tbody tr:has(.api-method.post) td {
   background-color: #e3f7e7;
+}
+.md-typeset .api-endpoints tbody tr:has(.api-method.post) td code {
+  background-color: #b8e8c4 !important;
+  color: #1f2328 !important;
 }
 .md-typeset
   .api-endpoints
@@ -36,16 +44,28 @@
   td {
   background-color: #fdf6cf;
 }
+.md-typeset
+  .api-endpoints
+  tbody
+  tr:has(.api-method.put, .api-method.patch)
+  td code {
+  background-color: #f0e08a !important;
+  color: #1f2328 !important;
+}
 .md-typeset .api-endpoints tbody tr:has(.api-method.delete) td {
   background-color: #fde2e2;
 }
+.md-typeset .api-endpoints tbody tr:has(.api-method.delete) td code {
+  background-color: #f5b8b8 !important;
+  color: #1f2328 !important;
+}
 
 /* En modo oscuro mantenemos el fondo pastel pero forzamos texto oscuro
- * dentro de la fila para que el contraste sea legible. */
+ * en toda la fila — el background-color de <code> ya está fijado arriba. */
 [data-md-color-scheme="slate"] .md-typeset .api-endpoints tbody tr td,
 [data-md-color-scheme="slate"] .md-typeset .api-endpoints tbody tr td code,
 [data-md-color-scheme="slate"] .md-typeset .api-endpoints tbody tr td a {
-  color: #1f2328;
+  color: #1f2328 !important;
 }
 
 .md-typeset .api-method {
