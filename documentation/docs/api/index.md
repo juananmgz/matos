@@ -1,60 +1,121 @@
 # API
 
-!!! warning "Llega en fase 3"
-    Los endpoints todavía no existen. Esta página se rellenará a medida
-    que se implementen.
+## Endpoints implementados
 
-## Endpoints planificados
-
-### Lectura (fase 3)
+### Healthcheck
 
 <div class="api-endpoints" markdown>
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| <span class="api-method get">GET</span> | `/api/health` | Healthcheck. |
-| <span class="api-method get">GET</span> | `/api/tree` | Árbol completo CCAA → Provincia → Pueblo. |
-| <span class="api-method get">GET</span> | `/api/tree/{path}` | Subárbol bajo un path ltree. |
-| <span class="api-method get">GET</span> | `/api/items/{id}` | Detalle de un item. |
-| <span class="api-method get">GET</span> | `/api/items?geo=...&kind=...&status=...` | Listado filtrado. |
-| <span class="api-method get">GET</span> | `/api/songs/{id}` | Song con items y relaciones. |
-| <span class="api-method get">GET</span> | `/api/pueblo/{path}` | Items y songs de un pueblo. |
-| <span class="api-method get">GET</span> | `/api/artists` | Listado de artistas. |
-| <span class="api-method get">GET</span> | `/api/artists/{id}` | Detalle de artista + discos. |
-| <span class="api-method get">GET</span> | `/api/search?q=...` | FTS5 sobre items. |
+| <span class="api-method get">GET</span> | `/api/health` | Estado del servidor. |
 
 </div>
 
-### Streaming (fase 4)
+### Geografía
 
 <div class="api-endpoints" markdown>
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| <span class="api-method get">GET</span> | `/api/items/{id}/media` | Servido con HTTP Range. |
+| <span class="api-method get">GET</span> | `/api/tree` | Árbol completo CCAA → Provincia → Pueblo. |
+| <span class="api-method get">GET</span> | `/api/geo/{geo_id}` | Detalle de una unidad geográfica por UUID. |
+| <span class="api-method get">GET</span> | `/api/geo/by-path?path=...` | Unidad geográfica por path ltree (ej. `andalucia.granada.pampaneira`). |
+
+</div>
+
+### Items
+
+<div class="api-endpoints" markdown>
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| <span class="api-method get">GET</span> | `/api/items` | Listado filtrado (`geo`, `kind`, `status`, `platform`, `source_type`…). |
+| <span class="api-method get">GET</span> | `/api/items/{item_id}` | Detalle de un item. |
+
+</div>
+
+### Songs
+
+<div class="api-endpoints" markdown>
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| <span class="api-method get">GET</span> | `/api/songs` | Listado de canciones. |
+| <span class="api-method get">GET</span> | `/api/songs/{song_id}` | Canción con items y relaciones. |
+
+</div>
+
+### Discos
+
+<div class="api-endpoints" markdown>
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| <span class="api-method get">GET</span> | `/api/discos` | Listado de ediciones discográficas. |
+| <span class="api-method get">GET</span> | `/api/discos/{disco_id}` | Detalle de disco con tracks y segmentos. |
+| <span class="api-method get">GET</span> | `/api/discos/{disco_id}/tracks` | Tracks de un disco. |
+| <span class="api-method get">GET</span> | `/api/tracks/{track_id}/segments` | Segmentos de un track. |
+
+</div>
+
+### Media (streaming)
+
+<div class="api-endpoints" markdown>
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| <span class="api-method get">GET</span> | `/api/media/{item_id}` | Binario con soporte HTTP Range. |
+| <span class="api-method get">GET</span> | `/api/media/{item_id}/embed` | Embed para URLs externas (Spotify, YouTube…). |
+| <span class="api-method get">GET</span> | `/api/media/disco-track/{track_id}` | Binario de un track de disco con HTTP Range. |
+
+</div>
+
+---
+
+## Endpoints planificados
+
+### Artistas
+
+<div class="api-endpoints" markdown>
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| <span class="api-method get">GET</span> | `/api/artists` | Listado de artistas. |
+| <span class="api-method get">GET</span> | `/api/artists/{artist_id}` | Detalle de artista + discos. |
+| <span class="api-method post">POST</span> | `/api/artists` | Crea un artista. |
+| <span class="api-method put">PUT</span> | `/api/artists/{artist_id}` | Actualiza un artista. |
+| <span class="api-method delete">DELETE</span> | `/api/artists/{artist_id}` | Borra un artista (`artist_id` en discos queda NULL). |
+
+</div>
+
+### Búsqueda
+
+<div class="api-endpoints" markdown>
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| <span class="api-method get">GET</span> | `/api/search?q=...` | FTS5 sobre título, intérpretes y tags. |
 | <span class="api-method post">POST</span> | `/api/resolve-url` | Pega URL → metadata pre-rellenada. |
 
 </div>
 
-### Edición (fase 9)
+### Edición
 
 <div class="api-endpoints" markdown>
 
 | Método | Ruta | Descripción |
 |---|---|---|
 | <span class="api-method post">POST</span> | `/api/items` | Crea un item. |
-| <span class="api-method put">PUT</span> | `/api/items/{id}` | Actualiza campos top-level. |
-| <span class="api-method post">POST</span> | `/api/items/{id}/refetch` | Refresca `external_metadata`. |
-| <span class="api-method delete">DELETE</span> | `/api/items/{id}` | Borra un item. |
-| <span class="api-method post">POST</span> | `/api/artists` | Crea un artista. |
-| <span class="api-method put">PUT</span> | `/api/artists/{id}` | Actualiza un artista. |
-| <span class="api-method delete">DELETE</span> | `/api/artists/{id}` | Borra un artista (los discos quedan con `artist_id` NULL). |
+| <span class="api-method put">PUT</span> | `/api/items/{item_id}` | Actualiza campos top-level. |
+| <span class="api-method post">POST</span> | `/api/items/{item_id}/refetch` | Refresca `external_metadata`. |
+| <span class="api-method delete">DELETE</span> | `/api/items/{item_id}` | Borra un item. |
 
 </div>
 
-## Convención de colores
+---
 
-Cada fila se colorea según el verbo HTTP:
+## Convención de colores
 
 <div class="api-endpoints" markdown>
 
