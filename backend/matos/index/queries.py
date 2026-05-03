@@ -234,6 +234,32 @@ def list_songs(
     return [_song_row(r) for r in rows], int(total)
 
 
+# ─── artists ──────────────────────────────────────────────────────────────
+
+
+def get_artist(conn: sqlite3.Connection, artist_id: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM artist WHERE id = ?", (artist_id,)).fetchone()
+    return _artist_row(row) if row else None
+
+
+def get_artist_by_slug(conn: sqlite3.Connection, slug: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM artist WHERE slug = ?", (slug,)).fetchone()
+    return _artist_row(row) if row else None
+
+
+def list_artists(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute("SELECT * FROM artist ORDER BY nombre").fetchall()
+    return [_artist_row(r) for r in rows]
+
+
+def discos_of_artist(conn: sqlite3.Connection, artist_id: str) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT * FROM disco WHERE artist_id = ? ORDER BY año, titulo",
+        (artist_id,),
+    ).fetchall()
+    return [_disco_row(r) for r in rows]
+
+
 # ─── discos ───────────────────────────────────────────────────────────────
 
 
@@ -324,6 +350,15 @@ def _song_row(row: sqlite3.Row) -> dict[str, Any]:
 
 def _disco_row(row: sqlite3.Row) -> dict[str, Any]:
     d = dict(row)
+    d["tags"] = json.loads(d["tags"]) if d.get("tags") else []
+    d["raw"] = json.loads(d.pop("raw_json"))
+    d["has_external"] = bool(d.get("has_external"))
+    return d
+
+
+def _artist_row(row: sqlite3.Row) -> dict[str, Any]:
+    d = dict(row)
+    d["aliases"] = json.loads(d["aliases"]) if d.get("aliases") else []
     d["tags"] = json.loads(d["tags"]) if d.get("tags") else []
     d["raw"] = json.loads(d.pop("raw_json"))
     d["has_external"] = bool(d.get("has_external"))

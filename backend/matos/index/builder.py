@@ -27,6 +27,7 @@ from ..models import (
     CCAA,
     SCHEMA_VERSION,
     ArchiveIndex,
+    Artist,
     Disco,
     DiscoTrack,
     Huerfanas,
@@ -56,10 +57,15 @@ class IndexReport:
     items: int = 0
     songs: int = 0
     relations: int = 0
+    artists: int = 0
     discos: int = 0
     disco_tracks: int = 0
     track_segments: int = 0
     errors: list[str] = field(default_factory=list)
+    # Mapa slug → UUID de artistas conocidos. Se rellena durante el walk
+    # de `artists/` y se consulta al ingestar `discos/` para resolver
+    # `disco.artist_id` por convención cuando no está en el JSON.
+    artist_slugs: dict[str, str] = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
@@ -160,6 +166,7 @@ def _write_meta(conn: sqlite3.Connection, report: IndexReport) -> None:
         ("items_count", str(report.items)),
         ("songs_count", str(report.songs)),
         ("relations_count", str(report.relations)),
+        ("artists_count", str(report.artists)),
         ("discos_count", str(report.discos)),
         ("disco_tracks_count", str(report.disco_tracks)),
         ("track_segments_count", str(report.track_segments)),
@@ -199,6 +206,12 @@ def _walk(
     geo_root = PurePosixPath("geo")
     if storage.exists(geo_root) and storage.is_dir(geo_root):
         _walk_geo(storage, geo_root, report, write)
+
+    # ── artists/ ────────────────────────────────────────────────────────────
+    # Antes que discos para que `disco.artist_id` pueda resolver FK.
+    artists_root = PurePosixPath("artists")
+    if storage.exists(artists_root) and storage.is_dir(artists_root):
+        _walk_artists(storage, artists_root, report, write)
 
     # ── discos/ ─────────────────────────────────────────────────────────────
     discos_root = PurePosixPath("discos")
@@ -247,6 +260,19 @@ def _walk_geo(
                 if not storage.is_dir(pueblo_dir) or pueblo_dir.name.startswith((".", "_")):
                     continue
                 _ingest_pueblo(storage, pueblo_dir, prov, report, write)
+
+
+def _walk_artists(
+    storage: StorageAdapter,
+    artists_root: PurePosixPath,
+    report: IndexReport,
+    write: sqlite3.Connection | None,
+) -> None:
+    # artists/<slug>/_artist.json
+    for artist_dir in storage.list_dir(artists_root):
+        if not storage.is_dir(artist_dir) or artist_dir.name.startswith((".", "_")):
+            continue
+        _ingest_artist(storage, artist_dir, report, write)
 
 
 def _walk_discos(
@@ -586,6 +612,68 @@ def _ingest_song(
             )
 
 
+# ─── Artists ───────────────────────────────────────────────────────────────
+
+
+def _ingest_artist(
+    storage: StorageAdapter,
+    folder: PurePosixPath,
+    report: IndexReport,
+    write: sqlite3.Connection | None,
+) -> None:
+    """Ingesta un artista: `_artist.json` en `archivo/artists/<slug>/`.
+
+    Valida coherencia entre `slug` declarado en el JSON y el nombre de la
+    carpeta. Registra el slug en `report.artist_slugs` para que la ingesta
+    de discos pueda resolver `disco.artist_id` por convención.
+    """
+    meta = folder / "_artist.json"
+    if not storage.exists(meta):
+        report.errors.append(f"{folder}: falta _artist.json")
+        return
+    try:
+        artist = Artist.model_validate(_load_json(storage, meta))
+    except (ValidationError, json.JSONDecodeError) as e:
+        report.errors.append(f"{meta}: {e}")
+        return
+
+    if artist.slug != folder.name:
+        report.errors.append(
+            f"{meta}: slug '{artist.slug}' no coincide con carpeta '{folder.name}'"
+        )
+        return
+
+    if artist.slug in report.artist_slugs:
+        report.errors.append(f"{meta}: slug '{artist.slug}' duplicado")
+        return
+
+    report.artists += 1
+    report.artist_slugs[artist.slug] = str(artist.id)
+
+    if write is not None:
+        write.execute(
+            "INSERT INTO artist("
+            "  id, nombre, slug, type, geo_id, aliases, bio,"
+            "  enrichment_status, has_external, notas, tags, raw_json, fs_path"
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                str(artist.id),
+                artist.nombre,
+                artist.slug,
+                artist.type.value if artist.type else None,
+                str(artist.geo_id) if artist.geo_id else None,
+                json.dumps(artist.aliases, ensure_ascii=False),
+                artist.bio,
+                artist.enrichment.status.value,
+                1 if artist.external_metadata else 0,
+                artist.notas,
+                json.dumps(artist.tags, ensure_ascii=False),
+                artist.model_dump_json(),
+                str(meta),
+            ),
+        )
+
+
 # ─── Discos ────────────────────────────────────────────────────────────────
 
 
@@ -614,15 +702,39 @@ def _ingest_disco(
         report.errors.append(f"{meta}: cover_file {disco.cover_file} no encontrado")
         return
 
+    # Resolución de FK a artist:
+    # 1. Si el JSON declara `artist_id`, validamos que el UUID exista (cualquier
+    #    artista ya ingestado en este build).
+    # 2. Si no, intentamos resolver por slug de carpeta padre
+    #    (`discos/<slug>/<año-titulo>/`), respetando la convención.
+    # Si nada de eso funciona, queda NULL (el disco sigue siendo válido vía el
+    # campo `artista` denormalizado).
+    artist_id_resolved: str | None = None
+    if disco.artist_id is not None:
+        artist_id_resolved = str(disco.artist_id)
+        if write is not None:
+            exists = write.execute(
+                "SELECT 1 FROM artist WHERE id = ?", (artist_id_resolved,)
+            ).fetchone()
+            if exists is None:
+                report.errors.append(
+                    f"{meta}: artist_id={artist_id_resolved} no existe en artists/"
+                )
+                return
+    else:
+        slug = folder.parent.name
+        artist_id_resolved = report.artist_slugs.get(slug)
+
     report.discos += 1
     if write is not None:
         write.execute(
             "INSERT INTO disco("
-            "  id, artista, titulo, año, sello, catalogo, formato, cover_file,"
+            "  id, artist_id, artista, titulo, año, sello, catalogo, formato, cover_file,"
             "  enrichment_status, has_external, notas, tags, raw_json, fs_path"
-            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 str(disco.id),
+                artist_id_resolved,
                 disco.artista,
                 disco.titulo,
                 disco.año,

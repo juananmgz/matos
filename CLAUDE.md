@@ -286,14 +286,38 @@ Al terminar cualquier fase (o cambio significativo):
 1. **Tests verdes**: `make test` pasa sin errores.
 2. **Commit en la rama de trabajo** con mensaje `feat: phase N — <título>`.
 3. **Actualizar `README.md`**: estado de fases, comandos nuevos, estructura si cambia.
-4. **Si cambia el esquema SQLite** (`index/schema.sql`):
-   - Actualizar `documentation/db-schema.dot` con las tablas/columnas nuevas.
-   - Regenerar el PNG con `make db-diagram` y **sustituir** `documentation/db-schema.png`
-     (no añadir uno nuevo: el path es estable y referenciado desde docs y README).
-   - Actualizar la documentación MkDocs en `documentation/docs/arquitectura/base-de-datos.md`
-     (descripción de las tablas, FKs, índices). Si añades una tabla nueva, añadirla
-     a la sección correspondiente, no como apéndice.
-   - Commitear los tres cambios juntos: `.dot`, `.png` y el `.md` de mkdocs.
+4. **Si cambia la estructura de la base de datos** (`index/schema.sql`,
+   modelos Pydantic, layout `archivo/`, FKs, enums, reglas de resolución):
+
+   **Toda la documentación que mencione la entidad afectada debe actualizarse en el mismo commit.**
+   No basta con tocar `base-de-datos.md`: hay que auditar y actualizar al menos:
+
+   - `documentation/db-schema.dot` — tablas, columnas y FKs.
+   - `documentation/db-schema.png` — regenerar con `make db-diagram` y
+     **sustituir** el fichero (path estable, referenciado desde docs y README).
+     Se copia automáticamente a `documentation/docs/assets/db-schema.png`.
+   - `documentation/docs/arquitectura/base-de-datos.md` — descripción de
+     tablas, FKs, índices, reglas de resolución. Si añades una tabla nueva,
+     intégrala en la sección correspondiente, no como apéndice.
+   - `documentation/docs/arquitectura/index.md` — bloque "Layout del filesystem"
+     si la entidad introduce carpetas nuevas.
+   - `documentation/docs/arquitectura/modelo-metadatos.md` — si la entidad
+     añade capas externo↔archivo o cambia las reglas de enriquecimiento.
+   - `documentation/docs/api/index.md` — si la entidad expone endpoints
+     nuevos o modifica los existentes.
+   - `documentation/docs/casos-de-uso/*.md` — si algún caso queda
+     desactualizado por el cambio.
+   - `README.md` — estado de fases y árbol de carpetas si se altera.
+   - `CLAUDE.md` — secciones "Modelo de datos", "Layout del archivo" y la
+     tabla "Estado del proyecto".
+
+   Antes de commitear, ejecutar:
+
+   ```bash
+   grep -rn "<nombre-entidad-vieja>" documentation/ README.md CLAUDE.md
+   ```
+
+   para detectar referencias rotas. Commitear todos los cambios juntos.
 5. **Merge a `main`** desde el worktree principal:
    ```bash
    git -C /Users/juananmgz/Desktop/MNEMOSINE/MATOS merge --no-ff <rama> -m "Merge branch '<rama>'"

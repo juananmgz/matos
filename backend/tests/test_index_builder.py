@@ -315,10 +315,16 @@ class TestIngestDefaults:
 
 from matos.index.queries import (  # noqa: E402
     disco_segments_of_song,
+    discos_of_artist,
+    get_artist,
+    get_artist_by_slug,
     get_disco,
+    list_artists,
     list_discos,
 )
 from matos.models import (  # noqa: E402
+    Artist,
+    ArtistType,
     Disco,
     DiscoFormato,
     DiscoTrack,
@@ -574,3 +580,140 @@ class TestDiscos:
         db = tmp_path / "matos.db"
         report = build_index(LocalStorage(root), db)
         assert report.ok, report.errors
+
+
+# ─── Fase 1.6: artists ────────────────────────────────────────────────────
+
+
+def _add_artist(root: Path, *, slug: str, nombre: str, **kwargs) -> UUID:
+    """Helper: crea un `_artist.json` y devuelve su UUID."""
+    artist_id = uuid4()
+    artist = Artist(id=artist_id, slug=slug, nombre=nombre, **kwargs)
+    _dump(artist, root / "artists" / slug / "_artist.json")
+    return artist_id
+
+
+class TestArtists:
+    def test_artist_ingested_and_indexed(
+        self, archive_with_disco_and_huerfanas: tuple[Path, dict], tmp_path: Path
+    ) -> None:
+        root, ids = archive_with_disco_and_huerfanas
+        artist_id = _add_artist(
+            root,
+            slug="ringorrango",
+            nombre="Ringorrango",
+            type=ArtistType.grupo,
+            geo_id=ids["prov"],
+            aliases=["Ringo"],
+            bio="Grupo de folklore tradicional.",
+        )
+
+        db = tmp_path / "matos.db"
+        report = build_index(LocalStorage(root), db)
+        assert report.ok, report.errors
+        assert report.artists == 1
+
+        with connect(db) as c:
+            artists = list_artists(c)
+            assert len(artists) == 1
+            assert artists[0]["nombre"] == "Ringorrango"
+            assert artists[0]["aliases"] == ["Ringo"]
+
+            by_slug = get_artist_by_slug(c, "ringorrango")
+            assert by_slug is not None
+            assert by_slug["id"] == str(artist_id)
+
+            by_id = get_artist(c, str(artist_id))
+            assert by_id is not None
+            assert by_id["raw"]["bio"] == "Grupo de folklore tradicional."
+
+    def test_disco_artist_id_resolved_by_folder_slug(
+        self, archive_with_disco_and_huerfanas: tuple[Path, dict], tmp_path: Path
+    ) -> None:
+        """Sin `artist_id` en el JSON del disco, el reindex lo resuelve por
+        coincidencia entre `discos/<slug>/...` y `artists/<slug>/`."""
+        root, ids = archive_with_disco_and_huerfanas
+        artist_id = _add_artist(root, slug="ringorrango", nombre="Ringorrango")
+
+        db = tmp_path / "matos.db"
+        report = build_index(LocalStorage(root), db)
+        assert report.ok, report.errors
+
+        with connect(db) as c:
+            disco = get_disco(c, str(ids["disco"]))
+            assert disco is not None
+            assert disco["artist_id"] == str(artist_id)
+
+            of_artist = discos_of_artist(c, str(artist_id))
+            assert len(of_artist) == 1
+            assert of_artist[0]["titulo"] == "Vente conmigo"
+
+    def test_disco_explicit_artist_id_used(
+        self, archive_with_disco_and_huerfanas: tuple[Path, dict], tmp_path: Path
+    ) -> None:
+        """Si el JSON del disco declara `artist_id`, gana sobre la convención
+        por slug."""
+        root, ids = archive_with_disco_and_huerfanas
+        # El artista tiene slug distinto de la carpeta del disco
+        # → solo la FK explícita debería conectarlos.
+        artist_id = _add_artist(root, slug="ringo-banda", nombre="Ringorrango")
+
+        disco_path = root / "discos" / "ringorrango" / "(2009) Vente conmigo" / "_disco.json"
+        data = json.loads(disco_path.read_text())
+        data["artist_id"] = str(artist_id)
+        disco_path.write_text(json.dumps(data), encoding="utf-8")
+
+        db = tmp_path / "matos.db"
+        report = build_index(LocalStorage(root), db)
+        assert report.ok, report.errors
+
+        with connect(db) as c:
+            disco = get_disco(c, str(ids["disco"]))
+            assert disco["artist_id"] == str(artist_id)
+
+    def test_disco_artist_id_unknown_is_error(
+        self, archive_with_disco_and_huerfanas: tuple[Path, dict], tmp_path: Path
+    ) -> None:
+        root, _ = archive_with_disco_and_huerfanas
+        ghost = uuid4()
+        disco_path = root / "discos" / "ringorrango" / "(2009) Vente conmigo" / "_disco.json"
+        data = json.loads(disco_path.read_text())
+        data["artist_id"] = str(ghost)
+        disco_path.write_text(json.dumps(data), encoding="utf-8")
+
+        db = tmp_path / "matos.db"
+        report = build_index(LocalStorage(root), db)
+        assert not report.ok
+        assert any(str(ghost) in e for e in report.errors)
+
+    def test_artist_slug_mismatch_with_folder_is_error(
+        self,
+        archive_with_disco_and_huerfanas: tuple[Path, dict],
+        tmp_path: Path,
+    ) -> None:
+        root, _ = archive_with_disco_and_huerfanas
+        # Crear un _artist.json con slug "X" en una carpeta llamada "Y"
+        bad = root / "artists" / "ringorrango" / "_artist.json"
+        artist = Artist(id=uuid4(), slug="otro-slug", nombre="Ringorrango")
+        bad.parent.mkdir(parents=True, exist_ok=True)
+        bad.write_text(artist.model_dump_json(), encoding="utf-8")
+
+        report = build_index(LocalStorage(root), tmp_path / "matos.db")
+        assert not report.ok
+        assert any("no coincide con carpeta" in e for e in report.errors)
+
+    def test_disco_without_artist_record_keeps_artist_id_null(
+        self, archive_with_disco_and_huerfanas: tuple[Path, dict], tmp_path: Path
+    ) -> None:
+        """Sin `artists/` poblado, el disco se ingesta con artist_id NULL pero
+        sigue siendo válido (campo `artista` denormalizado preserva el nombre)."""
+        root, ids = archive_with_disco_and_huerfanas
+        db = tmp_path / "matos.db"
+        report = build_index(LocalStorage(root), db)
+        assert report.ok, report.errors
+        assert report.artists == 0
+
+        with connect(db) as c:
+            disco = get_disco(c, str(ids["disco"]))
+            assert disco["artist_id"] is None
+            assert disco["artista"] == "Ringorrango"
