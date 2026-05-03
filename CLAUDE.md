@@ -124,9 +124,14 @@ Entidades principales:
    relaciones (`version_of`, `lyrics_of`, `score_of`).
    `original_recording_missing=true` indica un stub creado desde un
    `TrackSegment` sin grabación de campo localizada.
-4. **Disco** (`_disco.json`) + **DiscoTrack** (`*.track.json`) +
+4. **Artist** (`_artist.json`). Artista (solista, grupo u otro) con `slug`
+   kebab-case, `geo_id` opcional, `aliases`, `bio`, `links`, `external_metadata`
+   y `enrichment`. Vive en `archivo/artists/<slug>/`.
+5. **Disco** (`_disco.json`) + **DiscoTrack** (`*.track.json`) +
    **TrackSegment** (embebido en track). Edición discográfica con tracks; cada
-   track contiene 1+ segmentos que mapean tramos a `Song`s.
+   track contiene 1+ segmentos que mapean tramos a `Song`s. `disco.artist_id`
+   FK opcional → `artist`; resolución automática por convención de slug
+   `discos/<slug>/...` ↔ `artists/<slug>/` cuando no se declara.
 
 Identidad: UUIDs estables. Renombrar archivos no rompe relaciones.
 
@@ -159,10 +164,13 @@ archivo/
 │   │   │   │   │   └── 9b1c-…-letra.meta.json
 │   │   │   │   └── songs/
 │   │   │   │       └── <uuid>.song.json
+├── artists/
+│   └── <slug>/
+│       └── _artist.json                     # artista (solista o grupo)
 └── discos/
-    └── <artista-slug>/
+    └── <slug>/                              # mismo slug que artists/<slug>/
         └── (YYYY) <titulo-slug>/
-            ├── _disco.json                  # metadata disco
+            ├── _disco.json                  # FK opcional artist_id → artists/<slug>/
             ├── cover.jpg                    # opcional, ref por cover_file
             ├── 01-<track>.flac              # binarios al lado del _disco.json
             ├── 02-<track>.flac
@@ -373,7 +381,7 @@ Cuando se incorporen Postgres+PostGIS y S3:
 |---|---|
 | 0  Scaffold + docker | ✅ completada |
 | 1  Schemas Pydantic | ✅ completada |
-| 1.5 Discos + huérfanas (layout `geo/` + `discos/`) | ✅ completada |
+| 1.5 Discos + huérfanas + artistas (layout `geo/` + `discos/` + `artists/`) | ✅ completada |
 | 2  Storage + índice SQLite | ✅ completada |
 | 3  API lectura | ✅ completada |
 | 4  API streaming | ✅ completada |

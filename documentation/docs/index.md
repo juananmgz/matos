@@ -58,9 +58,12 @@ Reproductor y catalogador del archivo de etnomusicología **MNEMOSINE**.
 |---|---|---|
 | 0 | Scaffold + dockerización | :material-check-bold:{ .ok } |
 | 1 | Schemas Pydantic | :material-check-bold:{ .ok } |
+| 1.5 | Discos + huérfanas + artistas | :material-check-bold:{ .ok } |
 | 2 | Storage + índice SQLite | :material-check-bold:{ .ok } |
-| 3 | API lectura | :material-clock-outline: pendiente |
-| 4 | API streaming | :material-clock-outline: pendiente |
+| 3 | API lectura (tree, items, songs, discos) | :material-check-bold:{ .ok } |
+| 4 | API streaming + URL resolution | :material-check-bold:{ .ok } |
+| 5 | Frontend navegación | :material-clock-outline: pendiente |
+| 6 | Player + Media Session API | :material-clock-outline: pendiente |
 | … | … | … |
 
 Plan completo en [`ROADMAP.md`](https://github.com/juananmgz/matos/blob/main/ROADMAP.md).

@@ -21,7 +21,7 @@ fase a fase con `make test` verde y commit nombrado `feat: phase N — <título>
 |---|---|---|
 | 0  | Scaffold + dockerización | ✅ |
 | 1  | Schemas Pydantic + JSON Schema export | ✅ |
-| 1.5| Discos + huérfanas (layout `geo/` + `discos/`) | ✅ |
+| 1.5| Discos + huérfanas + artistas (layout `geo/` + `discos/` + `artists/`) | ✅ |
 | 2  | Storage local + índice SQLite | ✅ |
 | 3  | API lectura (tree, items, songs) | ✅ |
 | 4  | API streaming + URL resolution | ✅ |
@@ -101,34 +101,50 @@ make logs s=backend
 
 ---
 
-## Fase 1.5 ✅ — Discos + huérfanas
+## Fase 1.5 ✅ — Discos + huérfanas + artistas
 
-**Objetivo**: ampliar el modelo conceptual con discos (LP/CD/EP/single/digital)
-y con un mecanismo de geo parcial (huérfanas), permitiendo bidireccionalidad
-entre tramos de tracks de un disco y canciones tradicionales por pueblo.
+**Objetivo**: ampliar el modelo conceptual con discos (LP/CD/EP/single/digital),
+mecanismo de geo parcial (huérfanas) y artistas como entidad de primer nivel,
+permitiendo bidireccionalidad entre tramos de tracks de un disco y canciones
+tradicionales por pueblo.
 
 **Reorganización del layout**: `archivo/<ccaa>/...` → `archivo/geo/<ccaa>/...`.
-Nueva carpeta hermana `archivo/discos/<artista>/(YYYY) titulo/`.
+Nuevas carpetas hermanas `archivo/artists/<slug>/` y
+`archivo/discos/<slug>/(YYYY) titulo/`.
 
 **Entregado**:
 - `models/disco.py`: `Disco`, `DiscoFormato`, `DiscoTrack`, `TrackSegment` con
   `offset_s`/`duration_s` opcionales (track entero = segmento sin offsets).
+  `Disco.artist_id` FK opcional → `artist`; `Disco.artista` se conserva como
+  cache denormalizado para discos sin `_artist.json`.
+- `models/artist.py`: `Artist`, `ArtistType` (solo/grupo/otro). Slug
+  kebab-case validado por regex; `geo_id` FK opcional al pueblo/comarca de
+  origen; `aliases`, `bio`, `links`, `external_metadata`, `enrichment` con
+  el mismo patrón que `Item`.
 - `models/geo.py`: nueva `Huerfanas` (level `huerfanas`); válido a nivel raíz,
   CCAA o provincia.
 - `models/song.py`: campo `original_recording_missing: bool` para stubs creados
   desde un `TrackSegment` sin grabación de campo.
-- `index/schema.sql`: tablas `disco`, `disco_track`, `track_segment`; columna
+- `index/schema.sql`: tablas `artist`, `disco`, `disco_track`, `track_segment`;
+  `disco.artist_id` FK → `artist(id)` ON DELETE SET NULL; columna
   `original_recording_missing` en `song`; level enum extendido en `geo_unit`.
-- `index/builder.py`: walker reescrito sobre `archivo/geo/` + `archivo/discos/`.
-  Soporta `_huerfanas/` en cualquier nivel (UUID estable derivado del path si
-  falta `_huerfanas.json`). Validación FK explícita de `track_segment.song_id`.
-- `index/queries.py`: `get_disco`, `list_discos`, `tracks_of_disco`,
+- `index/builder.py`: walker reescrito sobre `archivo/geo/` + `archivo/artists/`
+  + `archivo/discos/`. Resolución artista↔disco por convención de slug:
+  `discos/<slug>/...` se enlaza a `artists/<slug>/` cuando coincide y el
+  disco no declara `artist_id` explícito. Soporta `_huerfanas/` en cualquier
+  nivel (UUID estable derivado del path si falta `_huerfanas.json`).
+  Validación FK explícita de `track_segment.song_id`.
+- `index/queries.py`: `get_artist`, `get_artist_by_slug`, `list_artists`,
+  `discos_of_artist`, `get_disco`, `list_discos`, `tracks_of_disco`,
   `segments_of_track`, `disco_segments_of_song` (lookup inverso).
-- `cli.py`: `init` crea `geo/andalucia/` y `discos/.gitkeep`. `export-schemas`
-  incluye `huerfanas`, `disco`, `disco_track`.
-- 8 tests nuevos cubriendo: huérfanas en provincia y raíz; ingest de disco con
-  3 segmentos; lookup inverso `disco_segments_of_song`; segmento huérfano con
-  `unmatched=true`; errores por song_id inexistente y binario faltante.
+- `cli.py`: `init` crea `geo/andalucia/`, `artists/.gitkeep` y
+  `discos/.gitkeep`. `export-schemas` incluye `artist`, `huerfanas`, `disco`,
+  `disco_track`.
+- Tests cubriendo: huérfanas en provincia y raíz; ingest de disco con 3
+  segmentos; lookup inverso `disco_segments_of_song`; segmento huérfano con
+  `unmatched=true`; errores por song_id inexistente y binario faltante;
+  ingestión de artistas, resolución por slug, FK explícito, error por slug
+  inválido y back-compat sin carpeta `artists/`.
 
 **Bidireccionalidad**:
 - Lado disco (fuente de verdad): `*.track.json` declara segmentos con
